@@ -71,12 +71,29 @@ isolations=(
   'SERIALIZABLE'
 )
 sqls=(
-'SELECT %%SLEEP_FN%%;
+'-- NORMAL, DELAY BEFORE SELECTION --
+SELECT %%SLEEP_FN%%;
 UPDATE products
 SET remaining_amount=remaining_amount-1
 WHERE id=1 AND remaining_amount>0;'
 
-'UPDATE products
+'-- NORMAL, DELAY WHILE UPDATING --
+UPDATE products
+SET remaining_amount=remaining_amount-1+(SELECT %%SLEEP_FN%%)
+WHERE id=1 AND remaining_amount>0;'
+
+'-- SUBQUERY WHERE, DELAY BEFORE SELECTION --
+SELECT %%SLEEP_FN%%;
+UPDATE products
+SET remaining_amount=remaining_amount-1
+WHERE EXISTS(
+  SELECT * FROM (
+    SELECT * FROM products WHERE id=1 AND remaining_amount>0
+  ) tmp
+);'
+
+'-- SUBQUERY WHERE, DELAY WHILE UPDATING --
+UPDATE products
 SET remaining_amount=remaining_amount-1+(SELECT %%SLEEP_FN%%)
 WHERE EXISTS(
   SELECT * FROM (
@@ -84,15 +101,24 @@ WHERE EXISTS(
   ) tmp
 );'
 
-'SELECT %%SLEEP_FN%%;
+'-- SUBQUERY SET, DELAY BEFORE SELECTION --
+SELECT %%SLEEP_FN%%;
 UPDATE products
 SET remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp)-1
 WHERE id=1 AND remaining_amount>0;'
+
+'-- SUBQUERY SET DELAY WHILE UPDATING --
+UPDATE products
+SET remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp)-1+(SELECT %%SLEEP_FN%%)
+WHERE id=1 AND remaining_amount>0;'
 )
 
-for sql in "${sqls[@]}"; do
-    for cmd in "${cmds[@]}"; do
+for cmd in "${cmds[@]}"; do
+    for sql in "${sqls[@]}"; do
         for isolation in "${isolations[@]}"; do
+            if [[ "$cmd" == pg ]] && [[ "$isolation" == 'READ UNCOMMITTED' ]]; then
+                continue
+            fi
             perform "$cmd" "$isolation" "$sql"
         done
     done

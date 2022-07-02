@@ -41,17 +41,17 @@ However, it is not guaranteed to be conflict-free whenever a SELECT subquery is 
 
 #### MySQL
 
-|                  | Normal | Subquery WHERE | Subquery SET |
-|:-----------------|:------:|:--------------:|:------------:|
-| READ UNCOMMITTED |   ✅    |       ❌        |      ✅       |
-| READ COMMITTED   |   ✅    |       ❌        |      ✅       |
-| REPEATABLE READ  |   ✅    |       ✅        |      ✅       |
-| SERIALIZABLE     |   ✅    |       ✅        |      ✅       |
+|                  | Normal |      Subquery WHERE       | Subquery SET |
+|:-----------------|:------:|:-------------------------:|:------------:|
+| READ UNCOMMITTED |   ✅    |  ❌ Broken on Write Delay  |      ✅       |
+| READ COMMITTED   |   ✅    |  ❌ Broken on Write Delay  |      ✅       |
+| REPEATABLE READ  |   ✅    | ❗ Deadlock on Write Delay |      ✅       |
+| SERIALIZABLE     |   ✅    |             ✅             |      ✅       |
 
 #### Postgres
 
-|                 | Normal | Subquery WHERE |     Subquery SET      |
-|:----------------|:------:|:--------------:|:---------------------:|
-| READ COMMITTED  |   ✅    |       ❌        |           ✅           |
-| REPEATABLE READ |   ✅    |       ✅        | ❗ Serialization Error |
-| SERIALIZABLE    |   ✅    |       ✅        | ❗ Serialization Error |
+|                 |        Normal         |     Subquery WHERE      |     Subquery SET      |
+|:----------------|:---------------------:|:-----------------------:|:---------------------:|
+| READ COMMITTED  |           ✅           | ❌ Broken on Write Delay |           ✅           |
+| REPEATABLE READ | ❗ Serialization Error |  ❗ Serialization Error  | ❗ Serialization Error |
+| SERIALIZABLE    | ❗ Serialization Error |  ❗ Serialization Error  | ❗ Serialization Error |
