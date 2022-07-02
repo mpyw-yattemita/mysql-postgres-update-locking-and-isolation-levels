@@ -1,0 +1,628 @@
+CMD:pg ISOLATION:READ UNCOMMITTED
+
+[SQL]
+SELECT (pg_sleep(N)::text != '')::int;
+UPDATE products
+SET remaining_amount=remaining_amount-1
+WHERE id=1 AND remaining_amount>0;
+
+ id | remaining_amount 
+----+------------------
+  1 |                1
+(1 row)
+
+A: BEGIN
+A: SET
+B: BEGIN
+B: SET
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: UPDATE 1
+A: COMMIT
+B:  int4 
+B: ------
+B:     0
+B: (1 row)
+B: 
+B: UPDATE 0
+B: COMMIT
+ id | remaining_amount 
+----+------------------
+  1 |                0
+(1 row)
+
+UPDATE 1
+
+CMD:pg ISOLATION:READ COMMITTED
+
+[SQL]
+SELECT (pg_sleep(N)::text != '')::int;
+UPDATE products
+SET remaining_amount=remaining_amount-1
+WHERE id=1 AND remaining_amount>0;
+
+ id | remaining_amount 
+----+------------------
+  1 |                1
+(1 row)
+
+B: BEGIN
+B: SET
+A: BEGIN
+A: SET
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: UPDATE 1
+A: COMMIT
+B:  int4 
+B: ------
+B:     0
+B: (1 row)
+B: 
+B: UPDATE 0
+B: COMMIT
+ id | remaining_amount 
+----+------------------
+  1 |                0
+(1 row)
+
+UPDATE 1
+
+CMD:pg ISOLATION:REPEATABLE READ
+
+[SQL]
+SELECT (pg_sleep(N)::text != '')::int;
+UPDATE products
+SET remaining_amount=remaining_amount-1
+WHERE id=1 AND remaining_amount>0;
+
+ id | remaining_amount 
+----+------------------
+  1 |                1
+(1 row)
+
+B: BEGIN
+B: SET
+A: BEGIN
+A: SET
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: UPDATE 1
+A: COMMIT
+B:  int4 
+B: ------
+B:     0
+B: (1 row)
+B: 
+B: ERROR:  could not serialize access due to concurrent update
+B: ROLLBACK
+ id | remaining_amount 
+----+------------------
+  1 |                0
+(1 row)
+
+UPDATE 1
+
+CMD:pg ISOLATION:SERIALIZABLE
+
+[SQL]
+SELECT (pg_sleep(N)::text != '')::int;
+UPDATE products
+SET remaining_amount=remaining_amount-1
+WHERE id=1 AND remaining_amount>0;
+
+ id | remaining_amount 
+----+------------------
+  1 |                1
+(1 row)
+
+B: BEGIN
+A: BEGIN
+B: SET
+A: SET
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: UPDATE 1
+A: COMMIT
+B:  int4 
+B: ------
+B:     0
+B: (1 row)
+B: 
+B: ERROR:  could not serialize access due to concurrent update
+B: ROLLBACK
+ id | remaining_amount 
+----+------------------
+  1 |                0
+(1 row)
+
+UPDATE 1
+
+CMD:my ISOLATION:READ UNCOMMITTED
+
+[SQL]
+SELECT sleep(N);
+UPDATE products
+SET remaining_amount=remaining_amount-1
+WHERE id=1 AND remaining_amount>0;
+
+id	remaining_amount
+1	1
+A: sleep(2)
+A: 0
+B: sleep(4)
+B: 0
+id	remaining_amount
+1	0
+
+CMD:my ISOLATION:READ COMMITTED
+
+[SQL]
+SELECT sleep(N);
+UPDATE products
+SET remaining_amount=remaining_amount-1
+WHERE id=1 AND remaining_amount>0;
+
+id	remaining_amount
+1	1
+A: sleep(2)
+A: 0
+B: sleep(4)
+B: 0
+id	remaining_amount
+1	0
+
+CMD:my ISOLATION:REPEATABLE READ
+
+[SQL]
+SELECT sleep(N);
+UPDATE products
+SET remaining_amount=remaining_amount-1
+WHERE id=1 AND remaining_amount>0;
+
+id	remaining_amount
+1	1
+A: sleep(2)
+A: 0
+B: sleep(4)
+B: 0
+id	remaining_amount
+1	0
+
+CMD:my ISOLATION:SERIALIZABLE
+
+[SQL]
+SELECT sleep(N);
+UPDATE products
+SET remaining_amount=remaining_amount-1
+WHERE id=1 AND remaining_amount>0;
+
+id	remaining_amount
+1	1
+A: sleep(2)
+A: 0
+B: sleep(4)
+B: 0
+id	remaining_amount
+1	0
+
+CMD:pg ISOLATION:READ UNCOMMITTED
+
+[SQL]
+UPDATE products
+SET remaining_amount=remaining_amount-1+(SELECT (pg_sleep(N)::text != '')::int)
+WHERE EXISTS(
+  SELECT * FROM (
+    SELECT * FROM products WHERE id=1 AND remaining_amount>0
+  ) tmp
+);
+
+ id | remaining_amount 
+----+------------------
+  1 |                1
+(1 row)
+
+A: BEGIN
+B: BEGIN
+A: SET
+B: SET
+A: UPDATE 1
+A: COMMIT
+B: UPDATE 1
+B: COMMIT
+ id | remaining_amount 
+----+------------------
+  1 |               -1
+(1 row)
+
+UPDATE 1
+
+CMD:pg ISOLATION:READ COMMITTED
+
+[SQL]
+UPDATE products
+SET remaining_amount=remaining_amount-1+(SELECT (pg_sleep(N)::text != '')::int)
+WHERE EXISTS(
+  SELECT * FROM (
+    SELECT * FROM products WHERE id=1 AND remaining_amount>0
+  ) tmp
+);
+
+ id | remaining_amount 
+----+------------------
+  1 |                1
+(1 row)
+
+A: BEGIN
+A: SET
+B: BEGIN
+B: SET
+A: UPDATE 1
+A: COMMIT
+B: UPDATE 1
+B: COMMIT
+ id | remaining_amount 
+----+------------------
+  1 |               -1
+(1 row)
+
+UPDATE 1
+
+CMD:pg ISOLATION:REPEATABLE READ
+
+[SQL]
+UPDATE products
+SET remaining_amount=remaining_amount-1+(SELECT (pg_sleep(N)::text != '')::int)
+WHERE EXISTS(
+  SELECT * FROM (
+    SELECT * FROM products WHERE id=1 AND remaining_amount>0
+  ) tmp
+);
+
+ id | remaining_amount 
+----+------------------
+  1 |                1
+(1 row)
+
+B: BEGIN
+A: BEGIN
+B: SET
+A: SET
+A: UPDATE 1
+A: COMMIT
+B: ERROR:  could not serialize access due to concurrent update
+B: ROLLBACK
+ id | remaining_amount 
+----+------------------
+  1 |                0
+(1 row)
+
+UPDATE 1
+
+CMD:pg ISOLATION:SERIALIZABLE
+
+[SQL]
+UPDATE products
+SET remaining_amount=remaining_amount-1+(SELECT (pg_sleep(N)::text != '')::int)
+WHERE EXISTS(
+  SELECT * FROM (
+    SELECT * FROM products WHERE id=1 AND remaining_amount>0
+  ) tmp
+);
+
+ id | remaining_amount 
+----+------------------
+  1 |                1
+(1 row)
+
+B: BEGIN
+B: SET
+A: BEGIN
+A: SET
+A: UPDATE 1
+A: COMMIT
+B: ERROR:  could not serialize access due to concurrent update
+B: ROLLBACK
+ id | remaining_amount 
+----+------------------
+  1 |                0
+(1 row)
+
+UPDATE 1
+
+CMD:my ISOLATION:READ UNCOMMITTED
+
+[SQL]
+UPDATE products
+SET remaining_amount=remaining_amount-1+(SELECT sleep(N))
+WHERE EXISTS(
+  SELECT * FROM (
+    SELECT * FROM products WHERE id=1 AND remaining_amount>0
+  ) tmp
+);
+
+id	remaining_amount
+1	1
+id	remaining_amount
+1	-1
+
+CMD:my ISOLATION:READ COMMITTED
+
+[SQL]
+UPDATE products
+SET remaining_amount=remaining_amount-1+(SELECT sleep(N))
+WHERE EXISTS(
+  SELECT * FROM (
+    SELECT * FROM products WHERE id=1 AND remaining_amount>0
+  ) tmp
+);
+
+id	remaining_amount
+1	1
+id	remaining_amount
+1	-1
+
+CMD:my ISOLATION:REPEATABLE READ
+
+[SQL]
+UPDATE products
+SET remaining_amount=remaining_amount-1+(SELECT sleep(N))
+WHERE EXISTS(
+  SELECT * FROM (
+    SELECT * FROM products WHERE id=1 AND remaining_amount>0
+  ) tmp
+);
+
+id	remaining_amount
+1	1
+id	remaining_amount
+1	0
+
+CMD:my ISOLATION:SERIALIZABLE
+
+[SQL]
+UPDATE products
+SET remaining_amount=remaining_amount-1+(SELECT sleep(N))
+WHERE EXISTS(
+  SELECT * FROM (
+    SELECT * FROM products WHERE id=1 AND remaining_amount>0
+  ) tmp
+);
+
+id	remaining_amount
+1	1
+id	remaining_amount
+1	0
+
+CMD:pg ISOLATION:READ UNCOMMITTED
+
+[SQL]
+SELECT (pg_sleep(N)::text != '')::int;
+UPDATE products
+SET remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp)-1
+WHERE id=1 AND remaining_amount>0;
+
+ id | remaining_amount 
+----+------------------
+  1 |                1
+(1 row)
+
+B: BEGIN
+B: SET
+A: BEGIN
+A: SET
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: UPDATE 1
+A: COMMIT
+B:  int4 
+B: ------
+B:     0
+B: (1 row)
+B: 
+B: UPDATE 0
+B: COMMIT
+ id | remaining_amount 
+----+------------------
+  1 |                0
+(1 row)
+
+UPDATE 1
+
+CMD:pg ISOLATION:READ COMMITTED
+
+[SQL]
+SELECT (pg_sleep(N)::text != '')::int;
+UPDATE products
+SET remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp)-1
+WHERE id=1 AND remaining_amount>0;
+
+ id | remaining_amount 
+----+------------------
+  1 |                1
+(1 row)
+
+B: BEGIN
+B: SET
+A: BEGIN
+A: SET
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: UPDATE 1
+A: COMMIT
+B:  int4 
+B: ------
+B:     0
+B: (1 row)
+B: 
+B: UPDATE 0
+B: COMMIT
+ id | remaining_amount 
+----+------------------
+  1 |                0
+(1 row)
+
+UPDATE 1
+
+CMD:pg ISOLATION:REPEATABLE READ
+
+[SQL]
+SELECT (pg_sleep(N)::text != '')::int;
+UPDATE products
+SET remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp)-1
+WHERE id=1 AND remaining_amount>0;
+
+ id | remaining_amount 
+----+------------------
+  1 |                1
+(1 row)
+
+A: BEGIN
+A: SET
+B: BEGIN
+B: SET
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: UPDATE 1
+A: COMMIT
+B:  int4 
+B: ------
+B:     0
+B: (1 row)
+B: 
+B: ERROR:  could not serialize access due to concurrent update
+B: ROLLBACK
+ id | remaining_amount 
+----+------------------
+  1 |                0
+(1 row)
+
+UPDATE 1
+
+CMD:pg ISOLATION:SERIALIZABLE
+
+[SQL]
+SELECT (pg_sleep(N)::text != '')::int;
+UPDATE products
+SET remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp)-1
+WHERE id=1 AND remaining_amount>0;
+
+ id | remaining_amount 
+----+------------------
+  1 |                1
+(1 row)
+
+A: BEGIN
+B: BEGIN
+A: SET
+B: SET
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: UPDATE 1
+A: COMMIT
+B:  int4 
+B: ------
+B:     0
+B: (1 row)
+B: 
+B: ERROR:  could not serialize access due to concurrent update
+B: ROLLBACK
+ id | remaining_amount 
+----+------------------
+  1 |                0
+(1 row)
+
+UPDATE 1
+
+CMD:my ISOLATION:READ UNCOMMITTED
+
+[SQL]
+SELECT sleep(N);
+UPDATE products
+SET remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp)-1
+WHERE id=1 AND remaining_amount>0;
+
+id	remaining_amount
+1	1
+A: sleep(2)
+A: 0
+B: sleep(4)
+B: 0
+id	remaining_amount
+1	0
+
+CMD:my ISOLATION:READ COMMITTED
+
+[SQL]
+SELECT sleep(N);
+UPDATE products
+SET remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp)-1
+WHERE id=1 AND remaining_amount>0;
+
+id	remaining_amount
+1	1
+A: sleep(2)
+A: 0
+B: sleep(4)
+B: 0
+id	remaining_amount
+1	0
+
+CMD:my ISOLATION:REPEATABLE READ
+
+[SQL]
+SELECT sleep(N);
+UPDATE products
+SET remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp)-1
+WHERE id=1 AND remaining_amount>0;
+
+id	remaining_amount
+1	1
+A: sleep(2)
+A: 0
+B: sleep(4)
+B: 0
+id	remaining_amount
+1	0
+
+CMD:my ISOLATION:SERIALIZABLE
+
+[SQL]
+SELECT sleep(N);
+UPDATE products
+SET remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp)-1
+WHERE id=1 AND remaining_amount>0;
+
+id	remaining_amount
+1	1
+A: sleep(2)
+A: 0
+B: sleep(4)
+B: 0
+id	remaining_amount
+1	0
+
