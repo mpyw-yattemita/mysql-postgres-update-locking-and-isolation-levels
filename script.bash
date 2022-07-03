@@ -13,7 +13,14 @@ escape() {
 replace_sleep() {
   cmd="$1"
   sleep_time="$2"
-  sed "s/%%SLEEP_FN%%/$(sleep_fn "$cmd" "$sleep_time" | escape)/"
+  sleep_time_if_a=$([[ "$2" -eq 1 ]] && printf %s 2 || printf %s 0)
+  sed "s/%%SLEEP_DELAY%%/$(sleep_fn "$cmd" "$sleep_time" | escape)/g" \
+  | sed "s/%%SLEEP_IF_A%%/$(sleep_fn "$cmd" "$sleep_time_if_a" | escape)/g"
+}
+replace_user() {
+  cmd="$1"
+  user="$2"
+  sed "s/%%USER%%/$(printf %s "$user" | escape)/g"
 }
 sleep_fn() {
     local cmd="$1"
@@ -38,22 +45,24 @@ perform() {
     local replaced="$(replace_sleep "$cmd" N <<< "$sql")"
     echo -e "CMD:$cmd ISOLATION:$isolation\n\n[SQL]\n$replaced\n"
     "$cmd" <<< 'SELECT * FROM products;'
-    perform_one_with_prefix "A: " 2 "$cmd" "$isolation" "$sql" &
-    perform_one_with_prefix "B: " 4 "$cmd" "$isolation" "$sql" &
+    perform_one A 1 "$cmd" "$isolation" "$sql" &
+    perform_one B 2 "$cmd" "$isolation" "$sql" &
     wait
     "$cmd" <<< 'SELECT * FROM products;'
     "$cmd" <<< 'UPDATE products SET remaining_amount=1;'
     echo
 }
-perform_one_with_prefix() {
-    local prefix="$1"
+perform_one() {
+    local user="$1"
     local sleep_time="$2"
     local cmd="$3"
     local isolation="$4"
     local sql="$5"
-    exec > >(trap "" INT TERM; sed "s/^/$prefix/")
-    exec 2> >(trap "" INT TERM; sed "s/^/$prefix/" >&2)
-    local replaced="$(replace_sleep "$cmd" "$sleep_time" <<< "$sql")"
+    exec > >(trap "" INT TERM; sed "s/^/$user: /")
+    exec 2> >(trap "" INT TERM; sed "s/^/$user: /" >&2)
+    local replaced
+    replaced="$(replace_sleep "$cmd" "$sleep_time" <<< "$sql")"
+    replaced="$(replace_user "$cmd" "$user" <<< "$replaced")"
     "$cmd" <<< \
 "$(begin_with_tx "$cmd" "$isolation");
 $replaced
@@ -71,46 +80,80 @@ isolations=(
   'SERIALIZABLE'
 )
 sqls=(
-'-- NORMAL, DELAY BEFORE SELECTION --
-SELECT %%SLEEP_FN%%;
+'-- NORMAL, DELAY BEFORE READ --
+SELECT %%SLEEP_DELAY%%;
 UPDATE products
-SET remaining_amount=remaining_amount-1
-WHERE id=1 AND remaining_amount>0;'
+SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1
+WHERE id=1 AND remaining_amount>0;
+SELECT %%SLEEP_IF_A%%;'
 
-'-- NORMAL, DELAY WHILE UPDATING --
+'-- NORMAL, DELAY ON PRE-WRITE --
 UPDATE products
-SET remaining_amount=remaining_amount-1+(SELECT %%SLEEP_FN%%)
-WHERE id=1 AND remaining_amount>0;'
+SET referencing_amount_%%USER%%=(SELECT %%SLEEP_DELAY%%)+remaining_amount, remaining_amount=remaining_amount-1
+WHERE id=1 AND remaining_amount>0;
+SELECT %%SLEEP_IF_A%%;'
 
-'-- SUBQUERY WHERE, DELAY BEFORE SELECTION --
-SELECT %%SLEEP_FN%%;
+'-- NORMAL, DELAY ON POST-WRITE --
 UPDATE products
-SET remaining_amount=remaining_amount-1
+SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1+(SELECT %%SLEEP_DELAY%%)
+WHERE id=1 AND remaining_amount>0;
+SELECT %%SLEEP_IF_A%%;'
+
+'-- SUBQUERY WHERE, DELAY BEFORE READ --
+SELECT %%SLEEP_DELAY%%;
+UPDATE products
+SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1
 WHERE EXISTS(
   SELECT * FROM (
     SELECT * FROM products WHERE id=1 AND remaining_amount>0
   ) tmp
-);'
+);
+SELECT %%SLEEP_IF_A%%;'
 
-'-- SUBQUERY WHERE, DELAY WHILE UPDATING --
+'-- SUBQUERY WHERE, DELAY ON PRE-WRITE --
 UPDATE products
-SET remaining_amount=remaining_amount-1+(SELECT %%SLEEP_FN%%)
+SET referencing_amount_%%USER%%=(SELECT %%SLEEP_DELAY%%)+remaining_amount, remaining_amount=remaining_amount-1
 WHERE EXISTS(
   SELECT * FROM (
     SELECT * FROM products WHERE id=1 AND remaining_amount>0
   ) tmp
-);'
+);
+SELECT %%SLEEP_IF_A%%;'
 
-'-- SUBQUERY SET, DELAY BEFORE SELECTION --
-SELECT %%SLEEP_FN%%;
+'-- SUBQUERY WHERE, DELAY ON POST-WRITE --
 UPDATE products
-SET remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp)-1
-WHERE id=1 AND remaining_amount>0;'
+SET referencing_amount_%%USER%%=+remaining_amount, remaining_amount=remaining_amount-1+(SELECT %%SLEEP_DELAY%%)
+WHERE EXISTS(
+  SELECT * FROM (
+    SELECT * FROM products WHERE id=1 AND remaining_amount>0
+  ) tmp
+);
+SELECT %%SLEEP_IF_A%%;'
 
-'-- SUBQUERY SET DELAY WHILE UPDATING --
+'-- SUBQUERY SET, DELAY BEFORE READ --
+SELECT %%SLEEP_DELAY%%;
 UPDATE products
-SET remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp)-1+(SELECT %%SLEEP_FN%%)
-WHERE id=1 AND remaining_amount>0;'
+SET
+  referencing_amount_%%USER%%=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
+  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1
+WHERE id=1 AND remaining_amount>0;
+SELECT %%SLEEP_IF_A%%;'
+
+'-- SUBQUERY SET DELAY ON PRE-WRITE --
+UPDATE products
+SET
+  referencing_amount_%%USER%%=(SELECT %%SLEEP_DELAY%%)+(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
+  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1
+WHERE id=1 AND remaining_amount>0;
+SELECT %%SLEEP_IF_A%%;'
+
+'-- SUBQUERY SET DELAY ON POST-WRITE --
+UPDATE products
+SET
+  referencing_amount_%%USER%%=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
+  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1+(SELECT %%SLEEP_DELAY%%)
+WHERE id=1 AND remaining_amount>0;
+SELECT %%SLEEP_IF_A%%;'
 )
 
 for cmd in "${cmds[@]}"; do
