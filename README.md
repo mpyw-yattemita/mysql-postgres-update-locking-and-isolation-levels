@@ -43,7 +43,7 @@ However, it is not guaranteed to be conflict-free whenever a `SELECT` subquery i
 
 ## Postgres
 
-- **For simple updates or subquery `SET`, use `READ COMMITED`.**
+- **For simple updates or subquery `SET`, use `READ COMMITTED`.**
 - **For complex subquery `WHERE`, use `REPEATABLE READ` and retry on serialization errors.** 
 
 |                 |        Simple         |    Subquery WHERE     |     Subquery SET      |
@@ -52,7 +52,7 @@ However, it is not guaranteed to be conflict-free whenever a `SELECT` subquery i
 | REPEATABLE READ | ❗ Serialization Error | ❗ Serialization Error | ❗ Serialization Error |
 | SERIALIZABLE    | ❗ Serialization Error | ❗ Serialization Error | ❗ Serialization Error |
 
-### Subquery WHERE with `READ COMMITED` will be broken:
+### Subquery WHERE with `READ COMMITTED` will be broken:
 
 | [B] Latter ＼ [A] Former | Before-Read Delay | Pre-Write Delay | Post-Write Delay |
 |:------------------------|:-----------------:|:---------------:|:----------------:|
@@ -71,14 +71,14 @@ However, it is not guaranteed to be conflict-free whenever a `SELECT` subquery i
 | REPEATABLE READ  |   ✅    | ❗ 1/6 Deadlock |      ✅       |
 | SERIALIZABLE     |   ✅    | ❗ 1/6 Deadlock |      ✅       |
 
-### Subquery WHERE with `READ UNCOMMITED` will be broken:
+### Subquery WHERE with `READ UNCOMMITTED` will be broken:
 
 | [B] Latter ＼ [A] Former | Before-Read Delay | Pre-Write Delay | Post-Write Delay |
 |:------------------------|:-----------------:|:---------------:|:----------------:|
 | Act before A's commit   |         ✅         |    ❌ Broken     |     ❌ Broken     |
 | Act after A's commit    |         ✅         |    ❌ Broken     |     ❌ Broken     |
 
-### Subquery WHERE with `READ COMMITED` will be broken:
+### Subquery WHERE with `READ COMMITTED` will be broken:
 
 | [B] Latter ＼ [A] Former | Before-Read Delay | Pre-Write Delay | Post-Write Delay |
 |:------------------------|:-----------------:|:---------------:|:----------------:|
