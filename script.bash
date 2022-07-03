@@ -45,14 +45,14 @@ perform() {
     local replaced="$(replace_sleep "$cmd" N <<< "$sql")"
     echo -e "CMD:$cmd ISOLATION:$isolation\n\n[SQL]\n$replaced\n"
     "$cmd" <<< 'SELECT * FROM products;'
-    sleep 1
+    sleep 0.3
     perform_one A 1 "$cmd" "$isolation" "$sql" &
     perform_one B 2 "$cmd" "$isolation" "$sql" &
     wait
-    sleep 1
+    sleep 0.3
     "$cmd" <<< 'SELECT * FROM products;'
-    sleep 1
-    "$cmd" <<< 'UPDATE products SET remaining_amount=1;'
+    sleep 0.3
+    "$cmd" <<< 'UPDATE products SET remaining_amount=1,referencing_amount_A=NULL,referencing_amount_B=NULL;'
     echo
 }
 perform_one() {

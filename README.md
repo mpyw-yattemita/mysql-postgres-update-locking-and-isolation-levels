@@ -50,8 +50,8 @@ However, it is not guaranteed to be conflict-free whenever a SELECT subquery is 
 
 #### Postgres
 
-|                 |        Normal         |     Subquery WHERE      |     Subquery SET      |
-|:----------------|:---------------------:|:-----------------------:|:---------------------:|
-| READ COMMITTED  |           ✅           | ❌ Broken on Write Delay |           ✅           |
-| REPEATABLE READ | ❗ Serialization Error |  ❗ Serialization Error  | ❗ Serialization Error |
-| SERIALIZABLE    | ❗ Serialization Error |  ❗ Serialization Error  | ❗ Serialization Error |
+|                 |        Normal         |     Subquery WHERE     |     Subquery SET      |
+|:----------------|:---------------------:|:----------------------:|:---------------------:|
+| READ COMMITTED  |           ✅           |        ❌ Broken        |           ✅           |
+| REPEATABLE READ | ❗ Serialization Error | ❗ Serialization Error  | ❗ Serialization Error |
+| SERIALIZABLE    | ❗ Serialization Error | ❗ Serialization Error  | ❗ Serialization Error |
