@@ -2,21 +2,21 @@ CMD:pg ISOLATION:READ COMMITTED
 
 [SQL]
 -- NORMAL, DELAY BEFORE READ --
-SELECT (pg_sleep(N)::text != '')::int;
+SELECT (pg_sleep(1|2)::text != '')::int;
 UPDATE products
 SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1
 WHERE id=1 AND remaining_amount>0;
-SELECT (pg_sleep(0)::text != '')::int;
+SELECT (pg_sleep(2|0)::text != '')::int;
 
  id | remaining_amount | referencing_amount_a | referencing_amount_b 
 ----+------------------+----------------------+----------------------
   1 |                1 |                      |                     
 (1 row)
 
-A: BEGIN
-A: SET
 B: BEGIN
 B: SET
+A: BEGIN
+A: SET
 A:  int4 
 A: ------
 A:     0
@@ -34,6 +34,56 @@ A:     0
 A: (1 row)
 A: 
 A: COMMIT
+B: UPDATE 0
+B:  int4 
+B: ------
+B:     0
+B: (1 row)
+B: 
+B: COMMIT
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                0 |                    1 |                     
+(1 row)
+
+UPDATE 1
+
+CMD:pg ISOLATION:READ COMMITTED
+
+[SQL]
+-- NORMAL, DELAY BEFORE READ --
+SELECT (pg_sleep(1|2)::text != '')::int;
+UPDATE products
+SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1
+WHERE id=1 AND remaining_amount>0;
+SELECT (pg_sleep(0|0)::text != '')::int;
+
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                1 |                      |                     
+(1 row)
+
+A: BEGIN
+B: BEGIN
+A: SET
+B: SET
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: UPDATE 1
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: COMMIT
+B:  int4 
+B: ------
+B:     0
+B: (1 row)
+B: 
 B: UPDATE 0
 B:  int4 
 B: ------
@@ -52,11 +102,103 @@ CMD:pg ISOLATION:REPEATABLE READ
 
 [SQL]
 -- NORMAL, DELAY BEFORE READ --
-SELECT (pg_sleep(N)::text != '')::int;
+SELECT (pg_sleep(1|2)::text != '')::int;
 UPDATE products
 SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1
 WHERE id=1 AND remaining_amount>0;
-SELECT (pg_sleep(0)::text != '')::int;
+SELECT (pg_sleep(2|0)::text != '')::int;
+
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                1 |                      |                     
+(1 row)
+
+B: BEGIN
+B: SET
+A: BEGIN
+A: SET
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: UPDATE 1
+B:  int4 
+B: ------
+B:     0
+B: (1 row)
+B: 
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+B: ERROR:  could not serialize access due to concurrent update
+A: COMMIT
+B: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+B: ROLLBACK
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                0 |                    1 |                     
+(1 row)
+
+UPDATE 1
+
+CMD:pg ISOLATION:REPEATABLE READ
+
+[SQL]
+-- NORMAL, DELAY BEFORE READ --
+SELECT (pg_sleep(1|2)::text != '')::int;
+UPDATE products
+SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1
+WHERE id=1 AND remaining_amount>0;
+SELECT (pg_sleep(0|0)::text != '')::int;
+
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                1 |                      |                     
+(1 row)
+
+A: BEGIN
+B: BEGIN
+A: SET
+B: SET
+gA:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: UPDATE 1
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: COMMIT
+B:  int4 
+B: ------
+B:     0
+B: (1 row)
+B: 
+B: ERROR:  could not serialize access due to concurrent update
+B: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+B: ROLLBACK
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                0 |                    1 |                     
+(1 row)
+
+UPDATE 1
+
+CMD:pg ISOLATION:SERIALIZABLE
+
+[SQL]
+-- NORMAL, DELAY BEFORE READ --
+SELECT (pg_sleep(1|2)::text != '')::int;
+UPDATE products
+SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1
+WHERE id=1 AND remaining_amount>0;
+SELECT (pg_sleep(2|0)::text != '')::int;
 
  id | remaining_amount | referencing_amount_a | referencing_amount_b 
 ----+------------------+----------------------+----------------------
@@ -98,39 +240,39 @@ CMD:pg ISOLATION:SERIALIZABLE
 
 [SQL]
 -- NORMAL, DELAY BEFORE READ --
-SELECT (pg_sleep(N)::text != '')::int;
+SELECT (pg_sleep(1|2)::text != '')::int;
 UPDATE products
 SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1
 WHERE id=1 AND remaining_amount>0;
-SELECT (pg_sleep(0)::text != '')::int;
+SELECT (pg_sleep(0|0)::text != '')::int;
 
  id | remaining_amount | referencing_amount_a | referencing_amount_b 
 ----+------------------+----------------------+----------------------
   1 |                1 |                      |                     
 (1 row)
 
-B: BEGIN
-B: SET
 A: BEGIN
 A: SET
+B: BEGIN
+B: SET
 A:  int4 
 A: ------
 A:     0
 A: (1 row)
 A: 
 A: UPDATE 1
-B:  int4 
-B: ------
-B:     0
-B: (1 row)
-B: 
 A:  int4 
 A: ------
 A:     0
 A: (1 row)
 A: 
-B: ERROR:  could not serialize access due to concurrent update
 A: COMMIT
+B:  int4 
+B: ------
+B:     0
+B: (1 row)
+B: 
+B: ERROR:  could not serialize access due to concurrent update
 B: ERROR:  current transaction is aborted, commands ignored until end of transaction block
 B: ROLLBACK
  id | remaining_amount | referencing_amount_a | referencing_amount_b 
@@ -145,9 +287,9 @@ CMD:pg ISOLATION:READ COMMITTED
 [SQL]
 -- NORMAL, DELAY ON PRE-WRITE --
 UPDATE products
-SET referencing_amount_%%USER%%=(SELECT (pg_sleep(N)::text != '')::int)+remaining_amount, remaining_amount=remaining_amount-1
+SET referencing_amount_%%USER%%=(SELECT (pg_sleep(1|2)::text != '')::int)+remaining_amount, remaining_amount=remaining_amount-1
 WHERE id=1 AND remaining_amount>0;
-SELECT (pg_sleep(0)::text != '')::int;
+SELECT (pg_sleep(2|0)::text != '')::int;
 
  id | remaining_amount | referencing_amount_a | referencing_amount_b 
 ----+------------------+----------------------+----------------------
@@ -155,9 +297,48 @@ SELECT (pg_sleep(0)::text != '')::int;
 (1 row)
 
 A: BEGIN
-A: SET
 B: BEGIN
 B: SET
+A: SET
+A: UPDATE 1
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: COMMIT
+B: UPDATE 0
+B:  int4 
+B: ------
+B:     0
+B: (1 row)
+B: 
+B: COMMIT
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                0 |                    1 |                     
+(1 row)
+
+UPDATE 1
+
+CMD:pg ISOLATION:READ COMMITTED
+
+[SQL]
+-- NORMAL, DELAY ON PRE-WRITE --
+UPDATE products
+SET referencing_amount_%%USER%%=(SELECT (pg_sleep(1|2)::text != '')::int)+remaining_amount, remaining_amount=remaining_amount-1
+WHERE id=1 AND remaining_amount>0;
+SELECT (pg_sleep(0|0)::text != '')::int;
+
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                1 |                      |                     
+(1 row)
+
+B: BEGIN
+B: SET
+A: BEGIN
+A: SET
 A: UPDATE 1
 A:  int4 
 A: ------
@@ -184,9 +365,262 @@ CMD:pg ISOLATION:REPEATABLE READ
 [SQL]
 -- NORMAL, DELAY ON PRE-WRITE --
 UPDATE products
-SET referencing_amount_%%USER%%=(SELECT (pg_sleep(N)::text != '')::int)+remaining_amount, remaining_amount=remaining_amount-1
+SET referencing_amount_%%USER%%=(SELECT (pg_sleep(1|2)::text != '')::int)+remaining_amount, remaining_amount=remaining_amount-1
 WHERE id=1 AND remaining_amount>0;
-SELECT (pg_sleep(0)::text != '')::int;
+SELECT (pg_sleep(2|0)::text != '')::int;
+
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                1 |                      |                     
+(1 row)
+
+B: BEGIN
+B: SET
+A: BEGIN
+A: SET
+A: UPDATE 1
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: COMMIT
+B: ERROR:  could not serialize access due to concurrent update
+B: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+B: ROLLBACK
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                0 |                    1 |                     
+(1 row)
+
+UPDATE 1
+
+CMD:pg ISOLATION:REPEATABLE READ
+
+[SQL]
+-- NORMAL, DELAY ON PRE-WRITE --
+UPDATE products
+SET referencing_amount_%%USER%%=(SELECT (pg_sleep(1|2)::text != '')::int)+remaining_amount, remaining_amount=remaining_amount-1
+WHERE id=1 AND remaining_amount>0;
+SELECT (pg_sleep(0|0)::text != '')::int;
+
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                1 |                      |                     
+(1 row)
+
+B: BEGIN
+A: BEGIN
+A: SET
+B: SET
+A: UPDATE 1
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: COMMIT
+B: ERROR:  could not serialize access due to concurrent update
+B: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+B: ROLLBACK
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                0 |                    1 |                     
+(1 row)
+
+UPDATE 1
+
+CMD:pg ISOLATION:SERIALIZABLE
+
+[SQL]
+-- NORMAL, DELAY ON PRE-WRITE --
+UPDATE products
+SET referencing_amount_%%USER%%=(SELECT (pg_sleep(1|2)::text != '')::int)+remaining_amount, remaining_amount=remaining_amount-1
+WHERE id=1 AND remaining_amount>0;
+SELECT (pg_sleep(2|0)::text != '')::int;
+
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                1 |                      |                     
+(1 row)
+
+B: BEGIN
+B: SET
+A: BEGIN
+A: SET
+A: UPDATE 1
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: COMMIT
+B: ERROR:  could not serialize access due to concurrent update
+B: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+B: ROLLBACK
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                0 |                    1 |                     
+(1 row)
+
+UPDATE 1
+
+CMD:pg ISOLATION:SERIALIZABLE
+
+[SQL]
+-- NORMAL, DELAY ON PRE-WRITE --
+UPDATE products
+SET referencing_amount_%%USER%%=(SELECT (pg_sleep(1|2)::text != '')::int)+remaining_amount, remaining_amount=remaining_amount-1
+WHERE id=1 AND remaining_amount>0;
+SELECT (pg_sleep(0|0)::text != '')::int;
+
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                1 |                      |                     
+(1 row)
+
+B: BEGIN
+B: SET
+A: BEGIN
+A: SET
+A: UPDATE 1
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: COMMIT
+B: ERROR:  could not serialize access due to concurrent update
+B: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+B: ROLLBACK
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                0 |                    1 |                     
+(1 row)
+
+UPDATE 1
+
+CMD:pg ISOLATION:READ COMMITTED
+
+[SQL]
+-- NORMAL, DELAY ON POST-WRITE --
+UPDATE products
+SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1+(SELECT (pg_sleep(1|2)::text != '')::int)
+WHERE id=1 AND remaining_amount>0;
+SELECT (pg_sleep(2|0)::text != '')::int;
+
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                1 |                      |                     
+(1 row)
+
+A: BEGIN
+B: BEGIN
+A: SET
+B: SET
+A: UPDATE 1
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: COMMIT
+B: UPDATE 0
+B:  int4 
+B: ------
+B:     0
+B: (1 row)
+B: 
+B: COMMIT
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                0 |                    1 |                     
+(1 row)
+
+UPDATE 1
+
+CMD:pg ISOLATION:READ COMMITTED
+
+[SQL]
+-- NORMAL, DELAY ON POST-WRITE --
+UPDATE products
+SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1+(SELECT (pg_sleep(1|2)::text != '')::int)
+WHERE id=1 AND remaining_amount>0;
+SELECT (pg_sleep(0|0)::text != '')::int;
+
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                1 |                      |                     
+(1 row)
+
+B: BEGIN
+B: SET
+A: BEGIN
+A: SET
+A: UPDATE 1
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: COMMIT
+B: UPDATE 0
+B:  int4 
+B: ------
+B:     0
+B: (1 row)
+B: 
+B: COMMIT
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                0 |                    1 |                     
+(1 row)
+
+UPDATE 1
+
+CMD:pg ISOLATION:REPEATABLE READ
+
+[SQL]
+-- NORMAL, DELAY ON POST-WRITE --
+UPDATE products
+SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1+(SELECT (pg_sleep(1|2)::text != '')::int)
+WHERE id=1 AND remaining_amount>0;
+SELECT (pg_sleep(2|0)::text != '')::int;
+
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                1 |                      |                     
+(1 row)
+
+B: BEGIN
+B: SET
+A: BEGIN
+A: SET
+A: UPDATE 1
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: COMMIT
+B: ERROR:  could not serialize access due to concurrent update
+B: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+B: ROLLBACK
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                0 |                    1 |                     
+(1 row)
+
+UPDATE 1
+
+CMD:pg ISOLATION:REPEATABLE READ
+
+[SQL]
+-- NORMAL, DELAY ON POST-WRITE --
+UPDATE products
+SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1+(SELECT (pg_sleep(1|2)::text != '')::int)
+WHERE id=1 AND remaining_amount>0;
+SELECT (pg_sleep(0|0)::text != '')::int;
 
  id | remaining_amount | referencing_amount_a | referencing_amount_b 
 ----+------------------+----------------------+----------------------
@@ -217,46 +651,11 @@ UPDATE 1
 CMD:pg ISOLATION:SERIALIZABLE
 
 [SQL]
--- NORMAL, DELAY ON PRE-WRITE --
-UPDATE products
-SET referencing_amount_%%USER%%=(SELECT (pg_sleep(N)::text != '')::int)+remaining_amount, remaining_amount=remaining_amount-1
-WHERE id=1 AND remaining_amount>0;
-SELECT (pg_sleep(0)::text != '')::int;
-
- id | remaining_amount | referencing_amount_a | referencing_amount_b 
-----+------------------+----------------------+----------------------
-  1 |                1 |                      |                     
-(1 row)
-
-A: BEGIN
-A: SET
-B: BEGIN
-B: SET
-A: UPDATE 1
-A:  int4 
-A: ------
-A:     0
-A: (1 row)
-A: 
-A: COMMIT
-B: ERROR:  could not serialize access due to concurrent update
-B: ERROR:  current transaction is aborted, commands ignored until end of transaction block
-B: ROLLBACK
- id | remaining_amount | referencing_amount_a | referencing_amount_b 
-----+------------------+----------------------+----------------------
-  1 |                0 |                    1 |                     
-(1 row)
-
-UPDATE 1
-
-CMD:pg ISOLATION:READ COMMITTED
-
-[SQL]
 -- NORMAL, DELAY ON POST-WRITE --
 UPDATE products
-SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1+(SELECT (pg_sleep(N)::text != '')::int)
+SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1+(SELECT (pg_sleep(1|2)::text != '')::int)
 WHERE id=1 AND remaining_amount>0;
-SELECT (pg_sleep(0)::text != '')::int;
+SELECT (pg_sleep(2|0)::text != '')::int;
 
  id | remaining_amount | referencing_amount_a | referencing_amount_b 
 ----+------------------+----------------------+----------------------
@@ -264,47 +663,8 @@ SELECT (pg_sleep(0)::text != '')::int;
 (1 row)
 
 A: BEGIN
-A: SET
 B: BEGIN
 B: SET
-A: UPDATE 1
-A:  int4 
-A: ------
-A:     0
-A: (1 row)
-A: 
-A: COMMIT
-B: UPDATE 0
-B:  int4 
-B: ------
-B:     0
-B: (1 row)
-B: 
-B: COMMIT
- id | remaining_amount | referencing_amount_a | referencing_amount_b 
-----+------------------+----------------------+----------------------
-  1 |                0 |                    1 |                     
-(1 row)
-
-UPDATE 1
-
-CMD:pg ISOLATION:REPEATABLE READ
-
-[SQL]
--- NORMAL, DELAY ON POST-WRITE --
-UPDATE products
-SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1+(SELECT (pg_sleep(N)::text != '')::int)
-WHERE id=1 AND remaining_amount>0;
-SELECT (pg_sleep(0)::text != '')::int;
-
- id | remaining_amount | referencing_amount_a | referencing_amount_b 
-----+------------------+----------------------+----------------------
-  1 |                1 |                      |                     
-(1 row)
-
-B: BEGIN
-B: SET
-A: BEGIN
 A: SET
 A: UPDATE 1
 A:  int4 
@@ -328,9 +688,9 @@ CMD:pg ISOLATION:SERIALIZABLE
 [SQL]
 -- NORMAL, DELAY ON POST-WRITE --
 UPDATE products
-SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1+(SELECT (pg_sleep(N)::text != '')::int)
+SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1+(SELECT (pg_sleep(1|2)::text != '')::int)
 WHERE id=1 AND remaining_amount>0;
-SELECT (pg_sleep(0)::text != '')::int;
+SELECT (pg_sleep(0|0)::text != '')::int;
 
  id | remaining_amount | referencing_amount_a | referencing_amount_b 
 ----+------------------+----------------------+----------------------
@@ -349,8 +709,8 @@ A: (1 row)
 A: 
 A: COMMIT
 B: ERROR:  could not serialize access due to concurrent update
-B: ROLLBACK
 B: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+B: ROLLBACK
  id | remaining_amount | referencing_amount_a | referencing_amount_b 
 ----+------------------+----------------------+----------------------
   1 |                0 |                    1 |                     
@@ -362,7 +722,7 @@ CMD:pg ISOLATION:READ COMMITTED
 
 [SQL]
 -- SUBQUERY WHERE, DELAY BEFORE READ --
-SELECT (pg_sleep(N)::text != '')::int;
+SELECT (pg_sleep(1|2)::text != '')::int;
 UPDATE products
 SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1
 WHERE EXISTS(
@@ -370,17 +730,17 @@ WHERE EXISTS(
     SELECT * FROM products WHERE id=1 AND remaining_amount>0
   ) tmp
 );
-SELECT (pg_sleep(0)::text != '')::int;
+SELECT (pg_sleep(2|0)::text != '')::int;
 
  id | remaining_amount | referencing_amount_a | referencing_amount_b 
 ----+------------------+----------------------+----------------------
   1 |                1 |                      |                     
 (1 row)
 
-A: BEGIN
-A: SET
 B: BEGIN
 B: SET
+A: BEGIN
+A: SET
 A:  int4 
 A: ------
 A:     0
@@ -412,11 +772,11 @@ B: COMMIT
 
 UPDATE 1
 
-CMD:pg ISOLATION:REPEATABLE READ
+CMD:pg ISOLATION:READ COMMITTED
 
 [SQL]
 -- SUBQUERY WHERE, DELAY BEFORE READ --
-SELECT (pg_sleep(N)::text != '')::int;
+SELECT (pg_sleep(1|2)::text != '')::int;
 UPDATE products
 SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1
 WHERE EXISTS(
@@ -424,7 +784,7 @@ WHERE EXISTS(
     SELECT * FROM products WHERE id=1 AND remaining_amount>0
   ) tmp
 );
-SELECT (pg_sleep(0)::text != '')::int;
+SELECT (pg_sleep(0|0)::text != '')::int;
 
  id | remaining_amount | referencing_amount_a | referencing_amount_b 
 ----+------------------+----------------------+----------------------
@@ -435,6 +795,160 @@ A: BEGIN
 A: SET
 B: BEGIN
 B: SET
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: UPDATE 1
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: COMMIT
+B:  int4 
+B: ------
+B:     0
+B: (1 row)
+B: 
+B: UPDATE 0
+B:  int4 
+B: ------
+B:     0
+B: (1 row)
+B: 
+B: COMMIT
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                0 |                    1 |                     
+(1 row)
+
+UPDATE 1
+
+CMD:pg ISOLATION:REPEATABLE READ
+
+[SQL]
+-- SUBQUERY WHERE, DELAY BEFORE READ --
+SELECT (pg_sleep(1|2)::text != '')::int;
+UPDATE products
+SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1
+WHERE EXISTS(
+  SELECT * FROM (
+    SELECT * FROM products WHERE id=1 AND remaining_amount>0
+  ) tmp
+);
+SELECT (pg_sleep(2|0)::text != '')::int;
+
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                1 |                      |                     
+(1 row)
+
+A: BEGIN
+A: SET
+B: BEGIN
+B: SET
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: UPDATE 1
+B:  int4 
+B: ------
+B:     0
+B: (1 row)
+B: 
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: COMMIT
+B: ERROR:  could not serialize access due to concurrent update
+B: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+B: ROLLBACK
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                0 |                    1 |                     
+(1 row)
+
+UPDATE 1
+
+CMD:pg ISOLATION:REPEATABLE READ
+
+[SQL]
+-- SUBQUERY WHERE, DELAY BEFORE READ --
+SELECT (pg_sleep(1|2)::text != '')::int;
+UPDATE products
+SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1
+WHERE EXISTS(
+  SELECT * FROM (
+    SELECT * FROM products WHERE id=1 AND remaining_amount>0
+  ) tmp
+);
+SELECT (pg_sleep(0|0)::text != '')::int;
+
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                1 |                      |                     
+(1 row)
+
+A: BEGIN
+A: SET
+B: BEGIN
+B: SET
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: UPDATE 1
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: COMMIT
+B:  int4 
+B: ------
+B:     0
+B: (1 row)
+B: 
+B: ERROR:  could not serialize access due to concurrent update
+B: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+B: ROLLBACK
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                0 |                    1 |                     
+(1 row)
+
+UPDATE 1
+
+CMD:pg ISOLATION:SERIALIZABLE
+
+[SQL]
+-- SUBQUERY WHERE, DELAY BEFORE READ --
+SELECT (pg_sleep(1|2)::text != '')::int;
+UPDATE products
+SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1
+WHERE EXISTS(
+  SELECT * FROM (
+    SELECT * FROM products WHERE id=1 AND remaining_amount>0
+  ) tmp
+);
+SELECT (pg_sleep(2|0)::text != '')::int;
+
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                1 |                      |                     
+(1 row)
+
+B: BEGIN
+A: BEGIN
+B: SET
+A: SET
 A:  int4 
 A: ------
 A:     0
@@ -466,7 +980,7 @@ CMD:pg ISOLATION:SERIALIZABLE
 
 [SQL]
 -- SUBQUERY WHERE, DELAY BEFORE READ --
-SELECT (pg_sleep(N)::text != '')::int;
+SELECT (pg_sleep(1|2)::text != '')::int;
 UPDATE products
 SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1
 WHERE EXISTS(
@@ -474,7 +988,7 @@ WHERE EXISTS(
     SELECT * FROM products WHERE id=1 AND remaining_amount>0
   ) tmp
 );
-SELECT (pg_sleep(0)::text != '')::int;
+SELECT (pg_sleep(0|0)::text != '')::int;
 
  id | remaining_amount | referencing_amount_a | referencing_amount_b 
 ----+------------------+----------------------+----------------------
@@ -491,17 +1005,17 @@ A:     0
 A: (1 row)
 A: 
 A: UPDATE 1
-B:  int4 
-B: ------
-B:     0
-B: (1 row)
-B: 
 A:  int4 
 A: ------
 A:     0
 A: (1 row)
 A: 
 A: COMMIT
+B:  int4 
+B: ------
+B:     0
+B: (1 row)
+B: 
 B: ERROR:  could not serialize access due to concurrent update
 B: ERROR:  current transaction is aborted, commands ignored until end of transaction block
 B: ROLLBACK
@@ -517,13 +1031,56 @@ CMD:pg ISOLATION:READ COMMITTED
 [SQL]
 -- SUBQUERY WHERE, DELAY ON PRE-WRITE --
 UPDATE products
-SET referencing_amount_%%USER%%=(SELECT (pg_sleep(N)::text != '')::int)+remaining_amount, remaining_amount=remaining_amount-1
+SET referencing_amount_%%USER%%=(SELECT (pg_sleep(1|2)::text != '')::int)+remaining_amount, remaining_amount=remaining_amount-1
 WHERE EXISTS(
   SELECT * FROM (
     SELECT * FROM products WHERE id=1 AND remaining_amount>0
   ) tmp
 );
-SELECT (pg_sleep(0)::text != '')::int;
+SELECT (pg_sleep(2|0)::text != '')::int;
+
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                1 |                      |                     
+(1 row)
+
+B: BEGIN
+B: SET
+A: BEGIN
+A: SET
+A: UPDATE 1
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: COMMIT
+B: UPDATE 1
+B:  int4 
+B: ------
+B:     0
+B: (1 row)
+B: 
+B: COMMIT
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |               -1 |                    1 |                    0
+(1 row)
+
+UPDATE 1
+
+CMD:pg ISOLATION:READ COMMITTED
+
+[SQL]
+-- SUBQUERY WHERE, DELAY ON PRE-WRITE --
+UPDATE products
+SET referencing_amount_%%USER%%=(SELECT (pg_sleep(1|2)::text != '')::int)+remaining_amount, remaining_amount=remaining_amount-1
+WHERE EXISTS(
+  SELECT * FROM (
+    SELECT * FROM products WHERE id=1 AND remaining_amount>0
+  ) tmp
+);
+SELECT (pg_sleep(0|0)::text != '')::int;
 
  id | remaining_amount | referencing_amount_a | referencing_amount_b 
 ----+------------------+----------------------+----------------------
@@ -560,13 +1117,52 @@ CMD:pg ISOLATION:REPEATABLE READ
 [SQL]
 -- SUBQUERY WHERE, DELAY ON PRE-WRITE --
 UPDATE products
-SET referencing_amount_%%USER%%=(SELECT (pg_sleep(N)::text != '')::int)+remaining_amount, remaining_amount=remaining_amount-1
+SET referencing_amount_%%USER%%=(SELECT (pg_sleep(1|2)::text != '')::int)+remaining_amount, remaining_amount=remaining_amount-1
 WHERE EXISTS(
   SELECT * FROM (
     SELECT * FROM products WHERE id=1 AND remaining_amount>0
   ) tmp
 );
-SELECT (pg_sleep(0)::text != '')::int;
+SELECT (pg_sleep(2|0)::text != '')::int;
+
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                1 |                      |                     
+(1 row)
+
+A: BEGIN
+A: SET
+B: BEGIN
+B: SET
+A: UPDATE 1
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: COMMIT
+B: ERROR:  could not serialize access due to concurrent update
+B: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+B: ROLLBACK
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                0 |                    1 |                     
+(1 row)
+
+UPDATE 1
+
+CMD:pg ISOLATION:REPEATABLE READ
+
+[SQL]
+-- SUBQUERY WHERE, DELAY ON PRE-WRITE --
+UPDATE products
+SET referencing_amount_%%USER%%=(SELECT (pg_sleep(1|2)::text != '')::int)+remaining_amount, remaining_amount=remaining_amount-1
+WHERE EXISTS(
+  SELECT * FROM (
+    SELECT * FROM products WHERE id=1 AND remaining_amount>0
+  ) tmp
+);
+SELECT (pg_sleep(0|0)::text != '')::int;
 
  id | remaining_amount | referencing_amount_a | referencing_amount_b 
 ----+------------------+----------------------+----------------------
@@ -583,8 +1179,8 @@ A: ------
 A:     0
 A: (1 row)
 A: 
-B: ERROR:  could not serialize access due to concurrent update
 A: COMMIT
+B: ERROR:  could not serialize access due to concurrent update
 B: ERROR:  current transaction is aborted, commands ignored until end of transaction block
 B: ROLLBACK
  id | remaining_amount | referencing_amount_a | referencing_amount_b 
@@ -599,13 +1195,13 @@ CMD:pg ISOLATION:SERIALIZABLE
 [SQL]
 -- SUBQUERY WHERE, DELAY ON PRE-WRITE --
 UPDATE products
-SET referencing_amount_%%USER%%=(SELECT (pg_sleep(N)::text != '')::int)+remaining_amount, remaining_amount=remaining_amount-1
+SET referencing_amount_%%USER%%=(SELECT (pg_sleep(1|2)::text != '')::int)+remaining_amount, remaining_amount=remaining_amount-1
 WHERE EXISTS(
   SELECT * FROM (
     SELECT * FROM products WHERE id=1 AND remaining_amount>0
   ) tmp
 );
-SELECT (pg_sleep(0)::text != '')::int;
+SELECT (pg_sleep(2|0)::text != '')::int;
 
  id | remaining_amount | referencing_amount_a | referencing_amount_b 
 ----+------------------+----------------------+----------------------
@@ -613,9 +1209,48 @@ SELECT (pg_sleep(0)::text != '')::int;
 (1 row)
 
 A: BEGIN
+A: SET
 B: BEGIN
 B: SET
+A: UPDATE 1
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: COMMIT
+B: ERROR:  could not serialize access due to concurrent update
+B: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+B: ROLLBACK
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                0 |                    1 |                     
+(1 row)
+
+UPDATE 1
+
+CMD:pg ISOLATION:SERIALIZABLE
+
+[SQL]
+-- SUBQUERY WHERE, DELAY ON PRE-WRITE --
+UPDATE products
+SET referencing_amount_%%USER%%=(SELECT (pg_sleep(1|2)::text != '')::int)+remaining_amount, remaining_amount=remaining_amount-1
+WHERE EXISTS(
+  SELECT * FROM (
+    SELECT * FROM products WHERE id=1 AND remaining_amount>0
+  ) tmp
+);
+SELECT (pg_sleep(0|0)::text != '')::int;
+
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                1 |                      |                     
+(1 row)
+
+B: BEGIN
+A: BEGIN
 A: SET
+B: SET
 A: UPDATE 1
 A:  int4 
 A: ------
@@ -638,13 +1273,13 @@ CMD:pg ISOLATION:READ COMMITTED
 [SQL]
 -- SUBQUERY WHERE, DELAY ON POST-WRITE --
 UPDATE products
-SET referencing_amount_%%USER%%=+remaining_amount, remaining_amount=remaining_amount-1+(SELECT (pg_sleep(N)::text != '')::int)
+SET referencing_amount_%%USER%%=+remaining_amount, remaining_amount=remaining_amount-1+(SELECT (pg_sleep(1|2)::text != '')::int)
 WHERE EXISTS(
   SELECT * FROM (
     SELECT * FROM products WHERE id=1 AND remaining_amount>0
   ) tmp
 );
-SELECT (pg_sleep(0)::text != '')::int;
+SELECT (pg_sleep(2|0)::text != '')::int;
 
  id | remaining_amount | referencing_amount_a | referencing_amount_b 
 ----+------------------+----------------------+----------------------
@@ -652,8 +1287,8 @@ SELECT (pg_sleep(0)::text != '')::int;
 (1 row)
 
 B: BEGIN
-A: BEGIN
 B: SET
+A: BEGIN
 A: SET
 A: UPDATE 1
 A:  int4 
@@ -676,18 +1311,18 @@ B: COMMIT
 
 UPDATE 1
 
-CMD:pg ISOLATION:REPEATABLE READ
+CMD:pg ISOLATION:READ COMMITTED
 
 [SQL]
 -- SUBQUERY WHERE, DELAY ON POST-WRITE --
 UPDATE products
-SET referencing_amount_%%USER%%=+remaining_amount, remaining_amount=remaining_amount-1+(SELECT (pg_sleep(N)::text != '')::int)
+SET referencing_amount_%%USER%%=+remaining_amount, remaining_amount=remaining_amount-1+(SELECT (pg_sleep(1|2)::text != '')::int)
 WHERE EXISTS(
   SELECT * FROM (
     SELECT * FROM products WHERE id=1 AND remaining_amount>0
   ) tmp
 );
-SELECT (pg_sleep(0)::text != '')::int;
+SELECT (pg_sleep(0|0)::text != '')::int;
 
  id | remaining_amount | referencing_amount_a | referencing_amount_b 
 ----+------------------+----------------------+----------------------
@@ -704,8 +1339,90 @@ A: ------
 A:     0
 A: (1 row)
 A: 
-B: ERROR:  could not serialize access due to concurrent update
 A: COMMIT
+B: UPDATE 1
+B:  int4 
+B: ------
+B:     0
+B: (1 row)
+B: 
+B: COMMIT
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |               -1 |                    1 |                    0
+(1 row)
+
+UPDATE 1
+
+CMD:pg ISOLATION:REPEATABLE READ
+
+[SQL]
+-- SUBQUERY WHERE, DELAY ON POST-WRITE --
+UPDATE products
+SET referencing_amount_%%USER%%=+remaining_amount, remaining_amount=remaining_amount-1+(SELECT (pg_sleep(1|2)::text != '')::int)
+WHERE EXISTS(
+  SELECT * FROM (
+    SELECT * FROM products WHERE id=1 AND remaining_amount>0
+  ) tmp
+);
+SELECT (pg_sleep(2|0)::text != '')::int;
+
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                1 |                      |                     
+(1 row)
+
+A: BEGIN
+A: SET
+B: BEGIN
+B: SET
+A: UPDATE 1
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: COMMIT
+B: ERROR:  could not serialize access due to concurrent update
+B: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+B: ROLLBACK
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                0 |                    1 |                     
+(1 row)
+
+UPDATE 1
+
+CMD:pg ISOLATION:REPEATABLE READ
+
+[SQL]
+-- SUBQUERY WHERE, DELAY ON POST-WRITE --
+UPDATE products
+SET referencing_amount_%%USER%%=+remaining_amount, remaining_amount=remaining_amount-1+(SELECT (pg_sleep(1|2)::text != '')::int)
+WHERE EXISTS(
+  SELECT * FROM (
+    SELECT * FROM products WHERE id=1 AND remaining_amount>0
+  ) tmp
+);
+SELECT (pg_sleep(0|0)::text != '')::int;
+
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                1 |                      |                     
+(1 row)
+
+B: BEGIN
+A: BEGIN
+B: SET
+A: SET
+A: UPDATE 1
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: COMMIT
+B: ERROR:  could not serialize access due to concurrent update
 B: ERROR:  current transaction is aborted, commands ignored until end of transaction block
 B: ROLLBACK
  id | remaining_amount | referencing_amount_a | referencing_amount_b 
@@ -720,13 +1437,13 @@ CMD:pg ISOLATION:SERIALIZABLE
 [SQL]
 -- SUBQUERY WHERE, DELAY ON POST-WRITE --
 UPDATE products
-SET referencing_amount_%%USER%%=+remaining_amount, remaining_amount=remaining_amount-1+(SELECT (pg_sleep(N)::text != '')::int)
+SET referencing_amount_%%USER%%=+remaining_amount, remaining_amount=remaining_amount-1+(SELECT (pg_sleep(1|2)::text != '')::int)
 WHERE EXISTS(
   SELECT * FROM (
     SELECT * FROM products WHERE id=1 AND remaining_amount>0
   ) tmp
 );
-SELECT (pg_sleep(0)::text != '')::int;
+SELECT (pg_sleep(2|0)::text != '')::int;
 
  id | remaining_amount | referencing_amount_a | referencing_amount_b 
 ----+------------------+----------------------+----------------------
@@ -736,6 +1453,45 @@ SELECT (pg_sleep(0)::text != '')::int;
 B: BEGIN
 B: SET
 A: BEGIN
+A: SET
+A: UPDATE 1
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: COMMIT
+B: ERROR:  could not serialize access due to concurrent update
+B: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+B: ROLLBACK
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                0 |                    1 |                     
+(1 row)
+
+UPDATE 1
+
+CMD:pg ISOLATION:SERIALIZABLE
+
+[SQL]
+-- SUBQUERY WHERE, DELAY ON POST-WRITE --
+UPDATE products
+SET referencing_amount_%%USER%%=+remaining_amount, remaining_amount=remaining_amount-1+(SELECT (pg_sleep(1|2)::text != '')::int)
+WHERE EXISTS(
+  SELECT * FROM (
+    SELECT * FROM products WHERE id=1 AND remaining_amount>0
+  ) tmp
+);
+SELECT (pg_sleep(0|0)::text != '')::int;
+
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                1 |                      |                     
+(1 row)
+
+A: BEGIN
+B: BEGIN
+B: SET
 A: SET
 A: UPDATE 1
 A:  int4 
@@ -758,13 +1514,13 @@ CMD:pg ISOLATION:READ COMMITTED
 
 [SQL]
 -- SUBQUERY SET, DELAY BEFORE READ --
-SELECT (pg_sleep(N)::text != '')::int;
+SELECT (pg_sleep(1|2)::text != '')::int;
 UPDATE products
 SET
   referencing_amount_%%USER%%=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
   remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1
 WHERE id=1 AND remaining_amount>0;
-SELECT (pg_sleep(0)::text != '')::int;
+SELECT (pg_sleep(2|0)::text != '')::int;
 
  id | remaining_amount | referencing_amount_a | referencing_amount_b 
 ----+------------------+----------------------+----------------------
@@ -772,8 +1528,8 @@ SELECT (pg_sleep(0)::text != '')::int;
 (1 row)
 
 A: BEGIN
-B: BEGIN
 A: SET
+B: BEGIN
 B: SET
 A:  int4 
 A: ------
@@ -806,17 +1562,165 @@ B: COMMIT
 
 UPDATE 1
 
-CMD:pg ISOLATION:REPEATABLE READ
+CMD:pg ISOLATION:READ COMMITTED
 
 [SQL]
 -- SUBQUERY SET, DELAY BEFORE READ --
-SELECT (pg_sleep(N)::text != '')::int;
+SELECT (pg_sleep(1|2)::text != '')::int;
 UPDATE products
 SET
   referencing_amount_%%USER%%=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
   remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1
 WHERE id=1 AND remaining_amount>0;
-SELECT (pg_sleep(0)::text != '')::int;
+SELECT (pg_sleep(0|0)::text != '')::int;
+
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                1 |                      |                     
+(1 row)
+
+A: BEGIN
+B: BEGIN
+A: SET
+B: SET
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: UPDATE 1
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: COMMIT
+B:  int4 
+B: ------
+B:     0
+B: (1 row)
+B: 
+B: UPDATE 0
+B:  int4 
+B: ------
+B:     0
+B: (1 row)
+B: 
+B: COMMIT
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                0 |                    1 |                     
+(1 row)
+
+UPDATE 1
+
+CMD:pg ISOLATION:REPEATABLE READ
+
+[SQL]
+-- SUBQUERY SET, DELAY BEFORE READ --
+SELECT (pg_sleep(1|2)::text != '')::int;
+UPDATE products
+SET
+  referencing_amount_%%USER%%=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
+  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1
+WHERE id=1 AND remaining_amount>0;
+SELECT (pg_sleep(2|0)::text != '')::int;
+
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                1 |                      |                     
+(1 row)
+
+A: BEGIN
+A: SET
+B: BEGIN
+B: SET
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: UPDATE 1
+B:  int4 
+B: ------
+B:     0
+B: (1 row)
+B: 
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: COMMIT
+B: ERROR:  could not serialize access due to concurrent update
+B: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+B: ROLLBACK
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                0 |                    1 |                     
+(1 row)
+
+UPDATE 1
+
+CMD:pg ISOLATION:REPEATABLE READ
+
+[SQL]
+-- SUBQUERY SET, DELAY BEFORE READ --
+SELECT (pg_sleep(1|2)::text != '')::int;
+UPDATE products
+SET
+  referencing_amount_%%USER%%=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
+  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1
+WHERE id=1 AND remaining_amount>0;
+SELECT (pg_sleep(0|0)::text != '')::int;
+
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                1 |                      |                     
+(1 row)
+
+B: BEGIN
+A: BEGIN
+B: SET
+A: SET
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: UPDATE 1
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: COMMIT
+B:  int4 
+B: ------
+B:     0
+B: (1 row)
+B: 
+B: ERROR:  could not serialize access due to concurrent update
+B: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+B: ROLLBACK
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                0 |                    1 |                     
+(1 row)
+
+UPDATE 1
+
+CMD:pg ISOLATION:SERIALIZABLE
+
+[SQL]
+-- SUBQUERY SET, DELAY BEFORE READ --
+SELECT (pg_sleep(1|2)::text != '')::int;
+UPDATE products
+SET
+  referencing_amount_%%USER%%=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
+  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1
+WHERE id=1 AND remaining_amount>0;
+SELECT (pg_sleep(2|0)::text != '')::int;
 
  id | remaining_amount | referencing_amount_a | referencing_amount_b 
 ----+------------------+----------------------+----------------------
@@ -858,22 +1762,22 @@ CMD:pg ISOLATION:SERIALIZABLE
 
 [SQL]
 -- SUBQUERY SET, DELAY BEFORE READ --
-SELECT (pg_sleep(N)::text != '')::int;
+SELECT (pg_sleep(1|2)::text != '')::int;
 UPDATE products
 SET
   referencing_amount_%%USER%%=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
   remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1
 WHERE id=1 AND remaining_amount>0;
-SELECT (pg_sleep(0)::text != '')::int;
+SELECT (pg_sleep(0|0)::text != '')::int;
 
  id | remaining_amount | referencing_amount_a | referencing_amount_b 
 ----+------------------+----------------------+----------------------
   1 |                1 |                      |                     
 (1 row)
 
+B: BEGIN
 A: BEGIN
 A: SET
-B: BEGIN
 B: SET
 A:  int4 
 A: ------
@@ -881,18 +1785,18 @@ A:     0
 A: (1 row)
 A: 
 A: UPDATE 1
-B:  int4 
-B: ------
-B:     0
-B: (1 row)
-B: 
 A:  int4 
 A: ------
 A:     0
 A: (1 row)
 A: 
-B: ERROR:  could not serialize access due to concurrent update
 A: COMMIT
+B:  int4 
+B: ------
+B:     0
+B: (1 row)
+B: 
+B: ERROR:  could not serialize access due to concurrent update
 B: ERROR:  current transaction is aborted, commands ignored until end of transaction block
 B: ROLLBACK
  id | remaining_amount | referencing_amount_a | referencing_amount_b 
@@ -908,20 +1812,61 @@ CMD:pg ISOLATION:READ COMMITTED
 -- SUBQUERY SET DELAY ON PRE-WRITE --
 UPDATE products
 SET
-  referencing_amount_%%USER%%=(SELECT (pg_sleep(N)::text != '')::int)+(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
+  referencing_amount_%%USER%%=(SELECT (pg_sleep(1|2)::text != '')::int)+(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
   remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1
 WHERE id=1 AND remaining_amount>0;
-SELECT (pg_sleep(0)::text != '')::int;
+SELECT (pg_sleep(2|0)::text != '')::int;
 
  id | remaining_amount | referencing_amount_a | referencing_amount_b 
 ----+------------------+----------------------+----------------------
   1 |                1 |                      |                     
 (1 row)
 
-B: BEGIN
-B: SET
 A: BEGIN
 A: SET
+B: BEGIN
+B: SET
+A: UPDATE 1
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: COMMIT
+B: UPDATE 0
+B:  int4 
+B: ------
+B:     0
+B: (1 row)
+B: 
+B: COMMIT
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                0 |                    1 |                     
+(1 row)
+
+UPDATE 1
+
+CMD:pg ISOLATION:READ COMMITTED
+
+[SQL]
+-- SUBQUERY SET DELAY ON PRE-WRITE --
+UPDATE products
+SET
+  referencing_amount_%%USER%%=(SELECT (pg_sleep(1|2)::text != '')::int)+(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
+  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1
+WHERE id=1 AND remaining_amount>0;
+SELECT (pg_sleep(0|0)::text != '')::int;
+
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                1 |                      |                     
+(1 row)
+
+A: BEGIN
+A: SET
+B: BEGIN
+B: SET
 A: UPDATE 1
 A:  int4 
 A: ------
@@ -949,10 +1894,84 @@ CMD:pg ISOLATION:REPEATABLE READ
 -- SUBQUERY SET DELAY ON PRE-WRITE --
 UPDATE products
 SET
-  referencing_amount_%%USER%%=(SELECT (pg_sleep(N)::text != '')::int)+(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
+  referencing_amount_%%USER%%=(SELECT (pg_sleep(1|2)::text != '')::int)+(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
   remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1
 WHERE id=1 AND remaining_amount>0;
-SELECT (pg_sleep(0)::text != '')::int;
+SELECT (pg_sleep(2|0)::text != '')::int;
+
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                1 |                      |                     
+(1 row)
+
+B: BEGIN
+B: SET
+A: BEGIN
+A: SET
+A: UPDATE 1
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+B: ERROR:  could not serialize access due to concurrent update
+A: COMMIT
+B: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+B: ROLLBACK
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                0 |                    1 |                     
+(1 row)
+
+UPDATE 1
+
+CMD:pg ISOLATION:REPEATABLE READ
+
+[SQL]
+-- SUBQUERY SET DELAY ON PRE-WRITE --
+UPDATE products
+SET
+  referencing_amount_%%USER%%=(SELECT (pg_sleep(1|2)::text != '')::int)+(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
+  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1
+WHERE id=1 AND remaining_amount>0;
+SELECT (pg_sleep(0|0)::text != '')::int;
+
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                1 |                      |                     
+(1 row)
+
+B: BEGIN
+B: SET
+A: BEGIN
+A: SET
+A: UPDATE 1
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: COMMIT
+B: ERROR:  could not serialize access due to concurrent update
+B: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+B: ROLLBACK
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                0 |                    1 |                     
+(1 row)
+
+UPDATE 1
+
+CMD:pg ISOLATION:SERIALIZABLE
+
+[SQL]
+-- SUBQUERY SET DELAY ON PRE-WRITE --
+UPDATE products
+SET
+  referencing_amount_%%USER%%=(SELECT (pg_sleep(1|2)::text != '')::int)+(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
+  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1
+WHERE id=1 AND remaining_amount>0;
+SELECT (pg_sleep(2|0)::text != '')::int;
 
  id | remaining_amount | referencing_amount_a | referencing_amount_b 
 ----+------------------+----------------------+----------------------
@@ -969,10 +1988,10 @@ A: ------
 A:     0
 A: (1 row)
 A: 
-A: COMMIT
-B: ROLLBACK
 B: ERROR:  could not serialize access due to concurrent update
+B: ROLLBACK
 B: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+A: COMMIT
  id | remaining_amount | referencing_amount_a | referencing_amount_b 
 ----+------------------+----------------------+----------------------
   1 |                0 |                    1 |                     
@@ -986,10 +2005,10 @@ CMD:pg ISOLATION:SERIALIZABLE
 -- SUBQUERY SET DELAY ON PRE-WRITE --
 UPDATE products
 SET
-  referencing_amount_%%USER%%=(SELECT (pg_sleep(N)::text != '')::int)+(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
+  referencing_amount_%%USER%%=(SELECT (pg_sleep(1|2)::text != '')::int)+(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
   remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1
 WHERE id=1 AND remaining_amount>0;
-SELECT (pg_sleep(0)::text != '')::int;
+SELECT (pg_sleep(0|0)::text != '')::int;
 
  id | remaining_amount | referencing_amount_a | referencing_amount_b 
 ----+------------------+----------------------+----------------------
@@ -1024,9 +2043,50 @@ CMD:pg ISOLATION:READ COMMITTED
 UPDATE products
 SET
   referencing_amount_%%USER%%=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
-  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1+(SELECT (pg_sleep(N)::text != '')::int)
+  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1+(SELECT (pg_sleep(1|2)::text != '')::int)
 WHERE id=1 AND remaining_amount>0;
-SELECT (pg_sleep(0)::text != '')::int;
+SELECT (pg_sleep(2|0)::text != '')::int;
+
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                1 |                      |                     
+(1 row)
+
+A: BEGIN
+B: BEGIN
+A: SET
+B: SET
+A: UPDATE 1
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: COMMIT
+B: UPDATE 0
+B:  int4 
+B: ------
+B:     0
+B: (1 row)
+B: 
+B: COMMIT
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                0 |                    1 |                     
+(1 row)
+
+UPDATE 1
+
+CMD:pg ISOLATION:READ COMMITTED
+
+[SQL]
+-- SUBQUERY SET DELAY ON POST-WRITE --
+UPDATE products
+SET
+  referencing_amount_%%USER%%=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
+  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1+(SELECT (pg_sleep(1|2)::text != '')::int)
+WHERE id=1 AND remaining_amount>0;
+SELECT (pg_sleep(0|0)::text != '')::int;
 
  id | remaining_amount | referencing_amount_a | referencing_amount_b 
 ----+------------------+----------------------+----------------------
@@ -1065,9 +2125,46 @@ CMD:pg ISOLATION:REPEATABLE READ
 UPDATE products
 SET
   referencing_amount_%%USER%%=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
-  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1+(SELECT (pg_sleep(N)::text != '')::int)
+  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1+(SELECT (pg_sleep(1|2)::text != '')::int)
 WHERE id=1 AND remaining_amount>0;
-SELECT (pg_sleep(0)::text != '')::int;
+SELECT (pg_sleep(2|0)::text != '')::int;
+
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                1 |                      |                     
+(1 row)
+
+B: BEGIN
+A: BEGIN
+A: SET
+B: SET
+A: UPDATE 1
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: COMMIT
+B: ERROR:  could not serialize access due to concurrent update
+B: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+B: ROLLBACK
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                0 |                    1 |                     
+(1 row)
+
+UPDATE 1
+
+CMD:pg ISOLATION:REPEATABLE READ
+
+[SQL]
+-- SUBQUERY SET DELAY ON POST-WRITE --
+UPDATE products
+SET
+  referencing_amount_%%USER%%=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
+  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1+(SELECT (pg_sleep(1|2)::text != '')::int)
+WHERE id=1 AND remaining_amount>0;
+SELECT (pg_sleep(0|0)::text != '')::int;
 
  id | remaining_amount | referencing_amount_a | referencing_amount_b 
 ----+------------------+----------------------+----------------------
@@ -1102,19 +2199,19 @@ CMD:pg ISOLATION:SERIALIZABLE
 UPDATE products
 SET
   referencing_amount_%%USER%%=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
-  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1+(SELECT (pg_sleep(N)::text != '')::int)
+  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1+(SELECT (pg_sleep(1|2)::text != '')::int)
 WHERE id=1 AND remaining_amount>0;
-SELECT (pg_sleep(0)::text != '')::int;
+SELECT (pg_sleep(2|0)::text != '')::int;
 
  id | remaining_amount | referencing_amount_a | referencing_amount_b 
 ----+------------------+----------------------+----------------------
   1 |                1 |                      |                     
 (1 row)
 
-B: BEGIN
-B: SET
 A: BEGIN
 A: SET
+B: BEGIN
+B: SET
 A: UPDATE 1
 A:  int4 
 A: ------
@@ -1123,8 +2220,45 @@ A: (1 row)
 A: 
 A: COMMIT
 B: ERROR:  could not serialize access due to concurrent update
-B: ROLLBACK
 B: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+B: ROLLBACK
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                0 |                    1 |                     
+(1 row)
+
+UPDATE 1
+
+CMD:pg ISOLATION:SERIALIZABLE
+
+[SQL]
+-- SUBQUERY SET DELAY ON POST-WRITE --
+UPDATE products
+SET
+  referencing_amount_%%USER%%=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
+  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1+(SELECT (pg_sleep(1|2)::text != '')::int)
+WHERE id=1 AND remaining_amount>0;
+SELECT (pg_sleep(0|0)::text != '')::int;
+
+ id | remaining_amount | referencing_amount_a | referencing_amount_b 
+----+------------------+----------------------+----------------------
+  1 |                1 |                      |                     
+(1 row)
+
+A: BEGIN
+A: SET
+B: BEGIN
+B: SET
+A: UPDATE 1
+A:  int4 
+A: ------
+A:     0
+A: (1 row)
+A: 
+A: COMMIT
+B: ERROR:  could not serialize access due to concurrent update
+B: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+B: ROLLBACK
  id | remaining_amount | referencing_amount_a | referencing_amount_b 
 ----+------------------+----------------------+----------------------
   1 |                0 |                    1 |                     
@@ -1136,11 +2270,57 @@ CMD:my ISOLATION:READ UNCOMMITTED
 
 [SQL]
 -- NORMAL, DELAY BEFORE READ --
-SELECT sleep(N);
+SELECT sleep(1|2);
 UPDATE products
 SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1
 WHERE id=1 AND remaining_amount>0;
-SELECT sleep(0);
+SELECT sleep(2|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+A: sleep(1)
+A: 0
+A: sleep(2)
+A: 0
+B: sleep(2)
+B: 0
+B: sleep(0)
+B: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	0	1	NULL
+
+CMD:my ISOLATION:READ UNCOMMITTED
+
+[SQL]
+-- NORMAL, DELAY BEFORE READ --
+SELECT sleep(1|2);
+UPDATE products
+SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1
+WHERE id=1 AND remaining_amount>0;
+SELECT sleep(0|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+A: sleep(1)
+A: 0
+A: sleep(0)
+A: 0
+B: sleep(2)
+B: 0
+B: sleep(0)
+B: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	0	1	NULL
+
+CMD:my ISOLATION:READ COMMITTED
+
+[SQL]
+-- NORMAL, DELAY BEFORE READ --
+SELECT sleep(1|2);
+UPDATE products
+SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1
+WHERE id=1 AND remaining_amount>0;
+SELECT sleep(2|0);
 
 id	remaining_amount	referencing_amount_A	referencing_amount_B
 1	1	NULL	NULL
@@ -1159,11 +2339,34 @@ CMD:my ISOLATION:READ COMMITTED
 
 [SQL]
 -- NORMAL, DELAY BEFORE READ --
-SELECT sleep(N);
+SELECT sleep(1|2);
 UPDATE products
 SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1
 WHERE id=1 AND remaining_amount>0;
-SELECT sleep(0);
+SELECT sleep(0|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+A: sleep(1)
+A: 0
+A: sleep(0)
+A: 0
+B: sleep(2)
+B: 0
+B: sleep(0)
+B: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	0	1	NULL
+
+CMD:my ISOLATION:REPEATABLE READ
+
+[SQL]
+-- NORMAL, DELAY BEFORE READ --
+SELECT sleep(1|2);
+UPDATE products
+SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1
+WHERE id=1 AND remaining_amount>0;
+SELECT sleep(2|0);
 
 id	remaining_amount	referencing_amount_A	referencing_amount_B
 1	1	NULL	NULL
@@ -1182,11 +2385,34 @@ CMD:my ISOLATION:REPEATABLE READ
 
 [SQL]
 -- NORMAL, DELAY BEFORE READ --
-SELECT sleep(N);
+SELECT sleep(1|2);
 UPDATE products
 SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1
 WHERE id=1 AND remaining_amount>0;
-SELECT sleep(0);
+SELECT sleep(0|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+A: sleep(1)
+A: 0
+A: sleep(0)
+A: 0
+B: sleep(2)
+B: 0
+B: sleep(0)
+B: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	0	1	NULL
+
+CMD:my ISOLATION:SERIALIZABLE
+
+[SQL]
+-- NORMAL, DELAY BEFORE READ --
+SELECT sleep(1|2);
+UPDATE products
+SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1
+WHERE id=1 AND remaining_amount>0;
+SELECT sleep(2|0);
 
 id	remaining_amount	referencing_amount_A	referencing_amount_B
 1	1	NULL	NULL
@@ -1205,17 +2431,17 @@ CMD:my ISOLATION:SERIALIZABLE
 
 [SQL]
 -- NORMAL, DELAY BEFORE READ --
-SELECT sleep(N);
+SELECT sleep(1|2);
 UPDATE products
 SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1
 WHERE id=1 AND remaining_amount>0;
-SELECT sleep(0);
+SELECT sleep(0|0);
 
 id	remaining_amount	referencing_amount_A	referencing_amount_B
 1	1	NULL	NULL
 A: sleep(1)
 A: 0
-A: sleep(2)
+A: sleep(0)
 A: 0
 B: sleep(2)
 B: 0
@@ -1229,9 +2455,9 @@ CMD:my ISOLATION:READ UNCOMMITTED
 [SQL]
 -- NORMAL, DELAY ON PRE-WRITE --
 UPDATE products
-SET referencing_amount_%%USER%%=(SELECT sleep(N))+remaining_amount, remaining_amount=remaining_amount-1
+SET referencing_amount_%%USER%%=(SELECT sleep(1|2))+remaining_amount, remaining_amount=remaining_amount-1
 WHERE id=1 AND remaining_amount>0;
-SELECT sleep(0);
+SELECT sleep(2|0);
 
 id	remaining_amount	referencing_amount_A	referencing_amount_B
 1	1	NULL	NULL
@@ -1242,14 +2468,68 @@ B: 0
 id	remaining_amount	referencing_amount_A	referencing_amount_B
 1	0	1	NULL
 
+CMD:my ISOLATION:READ UNCOMMITTED
+
+[SQL]
+-- NORMAL, DELAY ON PRE-WRITE --
+UPDATE products
+SET referencing_amount_%%USER%%=(SELECT sleep(1|2))+remaining_amount, remaining_amount=remaining_amount-1
+WHERE id=1 AND remaining_amount>0;
+SELECT sleep(0|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+B: sleep(0)
+B: 0
+A: sleep(0)
+A: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	0	NULL	1
+
 CMD:my ISOLATION:READ COMMITTED
 
 [SQL]
 -- NORMAL, DELAY ON PRE-WRITE --
 UPDATE products
-SET referencing_amount_%%USER%%=(SELECT sleep(N))+remaining_amount, remaining_amount=remaining_amount-1
+SET referencing_amount_%%USER%%=(SELECT sleep(1|2))+remaining_amount, remaining_amount=remaining_amount-1
 WHERE id=1 AND remaining_amount>0;
-SELECT sleep(0);
+SELECT sleep(2|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+B: sleep(0)
+B: 0
+A: sleep(2)
+A: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	0	NULL	1
+
+CMD:my ISOLATION:READ COMMITTED
+
+[SQL]
+-- NORMAL, DELAY ON PRE-WRITE --
+UPDATE products
+SET referencing_amount_%%USER%%=(SELECT sleep(1|2))+remaining_amount, remaining_amount=remaining_amount-1
+WHERE id=1 AND remaining_amount>0;
+SELECT sleep(0|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+B: sleep(0)
+B: 0
+A: sleep(0)
+A: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	0	NULL	1
+
+CMD:my ISOLATION:REPEATABLE READ
+
+[SQL]
+-- NORMAL, DELAY ON PRE-WRITE --
+UPDATE products
+SET referencing_amount_%%USER%%=(SELECT sleep(1|2))+remaining_amount, remaining_amount=remaining_amount-1
+WHERE id=1 AND remaining_amount>0;
+SELECT sleep(2|0);
 
 id	remaining_amount	referencing_amount_A	referencing_amount_B
 1	1	NULL	NULL
@@ -1265,9 +2545,27 @@ CMD:my ISOLATION:REPEATABLE READ
 [SQL]
 -- NORMAL, DELAY ON PRE-WRITE --
 UPDATE products
-SET referencing_amount_%%USER%%=(SELECT sleep(N))+remaining_amount, remaining_amount=remaining_amount-1
+SET referencing_amount_%%USER%%=(SELECT sleep(1|2))+remaining_amount, remaining_amount=remaining_amount-1
 WHERE id=1 AND remaining_amount>0;
-SELECT sleep(0);
+SELECT sleep(0|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+A: sleep(0)
+A: 0
+B: sleep(0)
+B: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	0	1	NULL
+
+CMD:my ISOLATION:SERIALIZABLE
+
+[SQL]
+-- NORMAL, DELAY ON PRE-WRITE --
+UPDATE products
+SET referencing_amount_%%USER%%=(SELECT sleep(1|2))+remaining_amount, remaining_amount=remaining_amount-1
+WHERE id=1 AND remaining_amount>0;
+SELECT sleep(2|0);
 
 id	remaining_amount	referencing_amount_A	referencing_amount_B
 1	1	NULL	NULL
@@ -1283,14 +2581,185 @@ CMD:my ISOLATION:SERIALIZABLE
 [SQL]
 -- NORMAL, DELAY ON PRE-WRITE --
 UPDATE products
-SET referencing_amount_%%USER%%=(SELECT sleep(N))+remaining_amount, remaining_amount=remaining_amount-1
+SET referencing_amount_%%USER%%=(SELECT sleep(1|2))+remaining_amount, remaining_amount=remaining_amount-1
 WHERE id=1 AND remaining_amount>0;
-SELECT sleep(0);
+SELECT sleep(0|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+B: sleep(0)
+B: 0
+A: sleep(0)
+A: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	0	NULL	1
+
+CMD:my ISOLATION:READ UNCOMMITTED
+
+[SQL]
+-- NORMAL, DELAY ON POST-WRITE --
+UPDATE products
+SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1+(SELECT sleep(1|2))
+WHERE id=1 AND remaining_amount>0;
+SELECT sleep(2|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+B: sleep(0)
+B: 0
+A: sleep(2)
+A: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	0	NULL	1
+
+CMD:my ISOLATION:READ UNCOMMITTED
+
+[SQL]
+-- NORMAL, DELAY ON POST-WRITE --
+UPDATE products
+SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1+(SELECT sleep(1|2))
+WHERE id=1 AND remaining_amount>0;
+SELECT sleep(0|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+B: sleep(0)
+B: 0
+A: sleep(0)
+A: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	0	NULL	1
+
+CMD:my ISOLATION:READ COMMITTED
+
+[SQL]
+-- NORMAL, DELAY ON POST-WRITE --
+UPDATE products
+SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1+(SELECT sleep(1|2))
+WHERE id=1 AND remaining_amount>0;
+SELECT sleep(2|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+B: sleep(0)
+B: 0
+A: sleep(2)
+A: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	0	NULL	1
+
+CMD:my ISOLATION:READ COMMITTED
+
+[SQL]
+-- NORMAL, DELAY ON POST-WRITE --
+UPDATE products
+SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1+(SELECT sleep(1|2))
+WHERE id=1 AND remaining_amount>0;
+SELECT sleep(0|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+A: sleep(0)
+A: 0
+B: sleep(0)
+B: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	0	1	NULL
+
+CMD:my ISOLATION:REPEATABLE READ
+
+[SQL]
+-- NORMAL, DELAY ON POST-WRITE --
+UPDATE products
+SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1+(SELECT sleep(1|2))
+WHERE id=1 AND remaining_amount>0;
+SELECT sleep(2|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+B: sleep(0)
+B: 0
+A: sleep(2)
+A: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	0	NULL	1
+
+CMD:my ISOLATION:REPEATABLE READ
+
+[SQL]
+-- NORMAL, DELAY ON POST-WRITE --
+UPDATE products
+SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1+(SELECT sleep(1|2))
+WHERE id=1 AND remaining_amount>0;
+SELECT sleep(0|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+A: sleep(0)
+A: 0
+B: sleep(0)
+B: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	0	1	NULL
+
+CMD:my ISOLATION:SERIALIZABLE
+
+[SQL]
+-- NORMAL, DELAY ON POST-WRITE --
+UPDATE products
+SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1+(SELECT sleep(1|2))
+WHERE id=1 AND remaining_amount>0;
+SELECT sleep(2|0);
 
 id	remaining_amount	referencing_amount_A	referencing_amount_B
 1	1	NULL	NULL
 A: sleep(2)
 A: 0
+B: sleep(0)
+B: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	0	1	NULL
+
+CMD:my ISOLATION:SERIALIZABLE
+
+[SQL]
+-- NORMAL, DELAY ON POST-WRITE --
+UPDATE products
+SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1+(SELECT sleep(1|2))
+WHERE id=1 AND remaining_amount>0;
+SELECT sleep(0|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+B: sleep(0)
+A: sleep(0)
+B: 0
+A: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	0	1	NULL
+
+CMD:my ISOLATION:READ UNCOMMITTED
+
+[SQL]
+-- SUBQUERY WHERE, DELAY BEFORE READ --
+SELECT sleep(1|2);
+UPDATE products
+SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1
+WHERE EXISTS(
+  SELECT * FROM (
+    SELECT * FROM products WHERE id=1 AND remaining_amount>0
+  ) tmp
+);
+SELECT sleep(2|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+A: sleep(1)
+A: 0
+A: sleep(2)
+A: 0
+B: sleep(2)
+B: 0
 B: sleep(0)
 B: 0
 id	remaining_amount	referencing_amount_A	referencing_amount_B
@@ -1299,16 +2768,25 @@ id	remaining_amount	referencing_amount_A	referencing_amount_B
 CMD:my ISOLATION:READ UNCOMMITTED
 
 [SQL]
--- NORMAL, DELAY ON POST-WRITE --
+-- SUBQUERY WHERE, DELAY BEFORE READ --
+SELECT sleep(1|2);
 UPDATE products
-SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1+(SELECT sleep(N))
-WHERE id=1 AND remaining_amount>0;
-SELECT sleep(0);
+SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1
+WHERE EXISTS(
+  SELECT * FROM (
+    SELECT * FROM products WHERE id=1 AND remaining_amount>0
+  ) tmp
+);
+SELECT sleep(0|0);
 
 id	remaining_amount	referencing_amount_A	referencing_amount_B
 1	1	NULL	NULL
-A: sleep(2)
+A: sleep(1)
 A: 0
+A: sleep(0)
+A: 0
+B: sleep(2)
+B: 0
 B: sleep(0)
 B: 0
 id	remaining_amount	referencing_amount_A	referencing_amount_B
@@ -1317,11 +2795,265 @@ id	remaining_amount	referencing_amount_A	referencing_amount_B
 CMD:my ISOLATION:READ COMMITTED
 
 [SQL]
--- NORMAL, DELAY ON POST-WRITE --
+-- SUBQUERY WHERE, DELAY BEFORE READ --
+SELECT sleep(1|2);
 UPDATE products
-SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1+(SELECT sleep(N))
-WHERE id=1 AND remaining_amount>0;
-SELECT sleep(0);
+SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1
+WHERE EXISTS(
+  SELECT * FROM (
+    SELECT * FROM products WHERE id=1 AND remaining_amount>0
+  ) tmp
+);
+SELECT sleep(2|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+A: sleep(1)
+A: 0
+A: sleep(2)
+A: 0
+B: sleep(2)
+B: 0
+B: sleep(0)
+B: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	-1	1	0
+
+CMD:my ISOLATION:READ COMMITTED
+
+[SQL]
+-- SUBQUERY WHERE, DELAY BEFORE READ --
+SELECT sleep(1|2);
+UPDATE products
+SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1
+WHERE EXISTS(
+  SELECT * FROM (
+    SELECT * FROM products WHERE id=1 AND remaining_amount>0
+  ) tmp
+);
+SELECT sleep(0|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+A: sleep(1)
+A: 0
+A: sleep(0)
+A: 0
+B: sleep(2)
+B: 0
+B: sleep(0)
+B: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	0	1	NULL
+
+CMD:my ISOLATION:REPEATABLE READ
+
+[SQL]
+-- SUBQUERY WHERE, DELAY BEFORE READ --
+SELECT sleep(1|2);
+UPDATE products
+SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1
+WHERE EXISTS(
+  SELECT * FROM (
+    SELECT * FROM products WHERE id=1 AND remaining_amount>0
+  ) tmp
+);
+SELECT sleep(2|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+A: sleep(1)
+A: 0
+A: sleep(2)
+A: 0
+B: sleep(2)
+B: 0
+B: sleep(0)
+B: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	0	1	NULL
+
+CMD:my ISOLATION:REPEATABLE READ
+
+[SQL]
+-- SUBQUERY WHERE, DELAY BEFORE READ --
+SELECT sleep(1|2);
+UPDATE products
+SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1
+WHERE EXISTS(
+  SELECT * FROM (
+    SELECT * FROM products WHERE id=1 AND remaining_amount>0
+  ) tmp
+);
+SELECT sleep(0|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+A: sleep(1)
+A: 0
+A: sleep(0)
+A: 0
+B: sleep(2)
+B: 0
+B: sleep(0)
+B: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	0	1	NULL
+
+CMD:my ISOLATION:SERIALIZABLE
+
+[SQL]
+-- SUBQUERY WHERE, DELAY BEFORE READ --
+SELECT sleep(1|2);
+UPDATE products
+SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1
+WHERE EXISTS(
+  SELECT * FROM (
+    SELECT * FROM products WHERE id=1 AND remaining_amount>0
+  ) tmp
+);
+SELECT sleep(2|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+A: sleep(1)
+A: 0
+A: sleep(2)
+A: 0
+B: sleep(2)
+B: 0
+B: sleep(0)
+B: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	0	1	NULL
+
+CMD:my ISOLATION:SERIALIZABLE
+
+[SQL]
+-- SUBQUERY WHERE, DELAY BEFORE READ --
+SELECT sleep(1|2);
+UPDATE products
+SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1
+WHERE EXISTS(
+  SELECT * FROM (
+    SELECT * FROM products WHERE id=1 AND remaining_amount>0
+  ) tmp
+);
+SELECT sleep(0|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+A: sleep(1)
+A: 0
+A: sleep(0)
+A: 0
+B: sleep(2)
+B: 0
+B: sleep(0)
+B: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	0	1	NULL
+
+CMD:my ISOLATION:READ UNCOMMITTED
+
+[SQL]
+-- SUBQUERY WHERE, DELAY ON PRE-WRITE --
+UPDATE products
+SET referencing_amount_%%USER%%=(SELECT sleep(1|2))+remaining_amount, remaining_amount=remaining_amount-1
+WHERE EXISTS(
+  SELECT * FROM (
+    SELECT * FROM products WHERE id=1 AND remaining_amount>0
+  ) tmp
+);
+SELECT sleep(2|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+A: sleep(2)
+A: 0
+B: sleep(0)
+B: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	-1	1	0
+
+CMD:my ISOLATION:READ UNCOMMITTED
+
+[SQL]
+-- SUBQUERY WHERE, DELAY ON PRE-WRITE --
+UPDATE products
+SET referencing_amount_%%USER%%=(SELECT sleep(1|2))+remaining_amount, remaining_amount=remaining_amount-1
+WHERE EXISTS(
+  SELECT * FROM (
+    SELECT * FROM products WHERE id=1 AND remaining_amount>0
+  ) tmp
+);
+SELECT sleep(0|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+B: sleep(0)
+B: 0
+A: sleep(0)
+A: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	-1	0	1
+
+CMD:my ISOLATION:READ COMMITTED
+
+[SQL]
+-- SUBQUERY WHERE, DELAY ON PRE-WRITE --
+UPDATE products
+SET referencing_amount_%%USER%%=(SELECT sleep(1|2))+remaining_amount, remaining_amount=remaining_amount-1
+WHERE EXISTS(
+  SELECT * FROM (
+    SELECT * FROM products WHERE id=1 AND remaining_amount>0
+  ) tmp
+);
+SELECT sleep(2|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+B: sleep(0)
+B: 0
+A: sleep(2)
+A: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	-1	0	1
+
+CMD:my ISOLATION:READ COMMITTED
+
+[SQL]
+-- SUBQUERY WHERE, DELAY ON PRE-WRITE --
+UPDATE products
+SET referencing_amount_%%USER%%=(SELECT sleep(1|2))+remaining_amount, remaining_amount=remaining_amount-1
+WHERE EXISTS(
+  SELECT * FROM (
+    SELECT * FROM products WHERE id=1 AND remaining_amount>0
+  ) tmp
+);
+SELECT sleep(0|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+B: sleep(0)
+B: 0
+A: sleep(0)
+A: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	-1	0	1
+
+CMD:my ISOLATION:REPEATABLE READ
+
+[SQL]
+-- SUBQUERY WHERE, DELAY ON PRE-WRITE --
+UPDATE products
+SET referencing_amount_%%USER%%=(SELECT sleep(1|2))+remaining_amount, remaining_amount=remaining_amount-1
+WHERE EXISTS(
+  SELECT * FROM (
+    SELECT * FROM products WHERE id=1 AND remaining_amount>0
+  ) tmp
+);
+SELECT sleep(2|0);
 
 id	remaining_amount	referencing_amount_A	referencing_amount_B
 1	1	NULL	NULL
@@ -1335,11 +3067,37 @@ id	remaining_amount	referencing_amount_A	referencing_amount_B
 CMD:my ISOLATION:REPEATABLE READ
 
 [SQL]
--- NORMAL, DELAY ON POST-WRITE --
+-- SUBQUERY WHERE, DELAY ON PRE-WRITE --
 UPDATE products
-SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1+(SELECT sleep(N))
-WHERE id=1 AND remaining_amount>0;
-SELECT sleep(0);
+SET referencing_amount_%%USER%%=(SELECT sleep(1|2))+remaining_amount, remaining_amount=remaining_amount-1
+WHERE EXISTS(
+  SELECT * FROM (
+    SELECT * FROM products WHERE id=1 AND remaining_amount>0
+  ) tmp
+);
+SELECT sleep(0|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+A: sleep(0)
+A: 0
+B: sleep(0)
+B: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	0	1	NULL
+
+CMD:my ISOLATION:SERIALIZABLE
+
+[SQL]
+-- SUBQUERY WHERE, DELAY ON PRE-WRITE --
+UPDATE products
+SET referencing_amount_%%USER%%=(SELECT sleep(1|2))+remaining_amount, remaining_amount=remaining_amount-1
+WHERE EXISTS(
+  SELECT * FROM (
+    SELECT * FROM products WHERE id=1 AND remaining_amount>0
+  ) tmp
+);
+SELECT sleep(2|0);
 
 id	remaining_amount	referencing_amount_A	referencing_amount_B
 1	1	NULL	NULL
@@ -1353,70 +3111,108 @@ id	remaining_amount	referencing_amount_A	referencing_amount_B
 CMD:my ISOLATION:SERIALIZABLE
 
 [SQL]
--- NORMAL, DELAY ON POST-WRITE --
+-- SUBQUERY WHERE, DELAY ON PRE-WRITE --
 UPDATE products
-SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1+(SELECT sleep(N))
-WHERE id=1 AND remaining_amount>0;
-SELECT sleep(0);
+SET referencing_amount_%%USER%%=(SELECT sleep(1|2))+remaining_amount, remaining_amount=remaining_amount-1
+WHERE EXISTS(
+  SELECT * FROM (
+    SELECT * FROM products WHERE id=1 AND remaining_amount>0
+  ) tmp
+);
+SELECT sleep(0|0);
 
 id	remaining_amount	referencing_amount_A	referencing_amount_B
 1	1	NULL	NULL
-A: sleep(2)
-A: 0
 B: sleep(0)
 B: 0
+A: sleep(0)
+A: 0
 id	remaining_amount	referencing_amount_A	referencing_amount_B
-1	0	1	NULL
+1	0	NULL	1
 
 CMD:my ISOLATION:READ UNCOMMITTED
 
 [SQL]
--- SUBQUERY WHERE, DELAY BEFORE READ --
-SELECT sleep(N);
+-- SUBQUERY WHERE, DELAY ON POST-WRITE --
 UPDATE products
-SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1
+SET referencing_amount_%%USER%%=+remaining_amount, remaining_amount=remaining_amount-1+(SELECT sleep(1|2))
 WHERE EXISTS(
   SELECT * FROM (
     SELECT * FROM products WHERE id=1 AND remaining_amount>0
   ) tmp
 );
-SELECT sleep(0);
+SELECT sleep(2|0);
 
 id	remaining_amount	referencing_amount_A	referencing_amount_B
 1	1	NULL	NULL
-A: sleep(1)
-A: 0
-A: sleep(2)
-A: 0
-B: sleep(2)
-B: 0
 B: sleep(0)
 B: 0
+A: sleep(2)
+A: 0
 id	remaining_amount	referencing_amount_A	referencing_amount_B
-1	0	1	NULL
+1	-1	0	1
+
+CMD:my ISOLATION:READ UNCOMMITTED
+
+[SQL]
+-- SUBQUERY WHERE, DELAY ON POST-WRITE --
+UPDATE products
+SET referencing_amount_%%USER%%=+remaining_amount, remaining_amount=remaining_amount-1+(SELECT sleep(1|2))
+WHERE EXISTS(
+  SELECT * FROM (
+    SELECT * FROM products WHERE id=1 AND remaining_amount>0
+  ) tmp
+);
+SELECT sleep(0|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+B: sleep(0)
+B: 0
+A: sleep(0)
+A: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	-1	0	1
 
 CMD:my ISOLATION:READ COMMITTED
 
 [SQL]
--- SUBQUERY WHERE, DELAY BEFORE READ --
-SELECT sleep(N);
+-- SUBQUERY WHERE, DELAY ON POST-WRITE --
 UPDATE products
-SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1
+SET referencing_amount_%%USER%%=+remaining_amount, remaining_amount=remaining_amount-1+(SELECT sleep(1|2))
 WHERE EXISTS(
   SELECT * FROM (
     SELECT * FROM products WHERE id=1 AND remaining_amount>0
   ) tmp
 );
-SELECT sleep(0);
+SELECT sleep(2|0);
 
 id	remaining_amount	referencing_amount_A	referencing_amount_B
 1	1	NULL	NULL
-A: sleep(1)
-A: 0
+B: sleep(0)
+B: 0
 A: sleep(2)
 A: 0
-B: sleep(2)
-B: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	-1	0	1
+
+CMD:my ISOLATION:READ COMMITTED
+
+[SQL]
+-- SUBQUERY WHERE, DELAY ON POST-WRITE --
+UPDATE products
+SET referencing_amount_%%USER%%=+remaining_amount, remaining_amount=remaining_amount-1+(SELECT sleep(1|2))
+WHERE EXISTS(
+  SELECT * FROM (
+    SELECT * FROM products WHERE id=1 AND remaining_amount>0
+  ) tmp
+);
+SELECT sleep(0|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+A: sleep(0)
+A: 0
 B: sleep(0)
 B: 0
 id	remaining_amount	referencing_amount_A	referencing_amount_B
@@ -1425,113 +3221,58 @@ id	remaining_amount	referencing_amount_A	referencing_amount_B
 CMD:my ISOLATION:REPEATABLE READ
 
 [SQL]
--- SUBQUERY WHERE, DELAY BEFORE READ --
-SELECT sleep(N);
+-- SUBQUERY WHERE, DELAY ON POST-WRITE --
 UPDATE products
-SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1
+SET referencing_amount_%%USER%%=+remaining_amount, remaining_amount=remaining_amount-1+(SELECT sleep(1|2))
 WHERE EXISTS(
   SELECT * FROM (
     SELECT * FROM products WHERE id=1 AND remaining_amount>0
   ) tmp
 );
-SELECT sleep(0);
+SELECT sleep(2|0);
 
 id	remaining_amount	referencing_amount_A	referencing_amount_B
 1	1	NULL	NULL
-A: sleep(1)
-A: 0
 A: sleep(2)
 A: 0
-B: sleep(2)
-B: 0
 B: sleep(0)
 B: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	0	1	NULL
+
+CMD:my ISOLATION:REPEATABLE READ
+
+[SQL]
+-- SUBQUERY WHERE, DELAY ON POST-WRITE --
+UPDATE products
+SET referencing_amount_%%USER%%=+remaining_amount, remaining_amount=remaining_amount-1+(SELECT sleep(1|2))
+WHERE EXISTS(
+  SELECT * FROM (
+    SELECT * FROM products WHERE id=1 AND remaining_amount>0
+  ) tmp
+);
+SELECT sleep(0|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+B: ERROR 1213 (40001) at line 3: Deadlock found when trying to get lock; try restarting transaction
+A: sleep(0)
+A: 0
 id	remaining_amount	referencing_amount_A	referencing_amount_B
 1	0	1	NULL
 
 CMD:my ISOLATION:SERIALIZABLE
 
 [SQL]
--- SUBQUERY WHERE, DELAY BEFORE READ --
-SELECT sleep(N);
+-- SUBQUERY WHERE, DELAY ON POST-WRITE --
 UPDATE products
-SET referencing_amount_%%USER%%=remaining_amount, remaining_amount=remaining_amount-1
+SET referencing_amount_%%USER%%=+remaining_amount, remaining_amount=remaining_amount-1+(SELECT sleep(1|2))
 WHERE EXISTS(
   SELECT * FROM (
     SELECT * FROM products WHERE id=1 AND remaining_amount>0
   ) tmp
 );
-SELECT sleep(0);
-
-id	remaining_amount	referencing_amount_A	referencing_amount_B
-1	1	NULL	NULL
-A: sleep(1)
-A: 0
-A: sleep(2)
-A: 0
-B: sleep(2)
-B: 0
-B: sleep(0)
-B: 0
-id	remaining_amount	referencing_amount_A	referencing_amount_B
-1	0	1	NULL
-
-CMD:my ISOLATION:READ UNCOMMITTED
-
-[SQL]
--- SUBQUERY WHERE, DELAY ON PRE-WRITE --
-UPDATE products
-SET referencing_amount_%%USER%%=(SELECT sleep(N))+remaining_amount, remaining_amount=remaining_amount-1
-WHERE EXISTS(
-  SELECT * FROM (
-    SELECT * FROM products WHERE id=1 AND remaining_amount>0
-  ) tmp
-);
-SELECT sleep(0);
-
-id	remaining_amount	referencing_amount_A	referencing_amount_B
-1	1	NULL	NULL
-A: sleep(2)
-A: 0
-B: sleep(0)
-B: 0
-id	remaining_amount	referencing_amount_A	referencing_amount_B
-1	-1	1	0
-
-CMD:my ISOLATION:READ COMMITTED
-
-[SQL]
--- SUBQUERY WHERE, DELAY ON PRE-WRITE --
-UPDATE products
-SET referencing_amount_%%USER%%=(SELECT sleep(N))+remaining_amount, remaining_amount=remaining_amount-1
-WHERE EXISTS(
-  SELECT * FROM (
-    SELECT * FROM products WHERE id=1 AND remaining_amount>0
-  ) tmp
-);
-SELECT sleep(0);
-
-id	remaining_amount	referencing_amount_A	referencing_amount_B
-1	1	NULL	NULL
-A: sleep(2)
-A: 0
-B: sleep(0)
-B: 0
-id	remaining_amount	referencing_amount_A	referencing_amount_B
-1	-1	1	0
-
-CMD:my ISOLATION:REPEATABLE READ
-
-[SQL]
--- SUBQUERY WHERE, DELAY ON PRE-WRITE --
-UPDATE products
-SET referencing_amount_%%USER%%=(SELECT sleep(N))+remaining_amount, remaining_amount=remaining_amount-1
-WHERE EXISTS(
-  SELECT * FROM (
-    SELECT * FROM products WHERE id=1 AND remaining_amount>0
-  ) tmp
-);
-SELECT sleep(0);
+SELECT sleep(2|0);
 
 id	remaining_amount	referencing_amount_A	referencing_amount_B
 1	1	NULL	NULL
@@ -1544,109 +3285,22 @@ id	remaining_amount	referencing_amount_A	referencing_amount_B
 CMD:my ISOLATION:SERIALIZABLE
 
 [SQL]
--- SUBQUERY WHERE, DELAY ON PRE-WRITE --
+-- SUBQUERY WHERE, DELAY ON POST-WRITE --
 UPDATE products
-SET referencing_amount_%%USER%%=(SELECT sleep(N))+remaining_amount, remaining_amount=remaining_amount-1
+SET referencing_amount_%%USER%%=+remaining_amount, remaining_amount=remaining_amount-1+(SELECT sleep(1|2))
 WHERE EXISTS(
   SELECT * FROM (
     SELECT * FROM products WHERE id=1 AND remaining_amount>0
   ) tmp
 );
-SELECT sleep(0);
+SELECT sleep(0|0);
 
 id	remaining_amount	referencing_amount_A	referencing_amount_B
 1	1	NULL	NULL
-A: sleep(2)
+A: sleep(0)
 A: 0
 B: sleep(0)
 B: 0
-id	remaining_amount	referencing_amount_A	referencing_amount_B
-1	0	1	NULL
-
-CMD:my ISOLATION:READ UNCOMMITTED
-
-[SQL]
--- SUBQUERY WHERE, DELAY ON POST-WRITE --
-UPDATE products
-SET referencing_amount_%%USER%%=+remaining_amount, remaining_amount=remaining_amount-1+(SELECT sleep(N))
-WHERE EXISTS(
-  SELECT * FROM (
-    SELECT * FROM products WHERE id=1 AND remaining_amount>0
-  ) tmp
-);
-SELECT sleep(0);
-
-id	remaining_amount	referencing_amount_A	referencing_amount_B
-1	1	NULL	NULL
-A: sleep(2)
-A: 0
-B: sleep(0)
-B: 0
-id	remaining_amount	referencing_amount_A	referencing_amount_B
-1	-1	1	0
-
-CMD:my ISOLATION:READ COMMITTED
-
-[SQL]
--- SUBQUERY WHERE, DELAY ON POST-WRITE --
-UPDATE products
-SET referencing_amount_%%USER%%=+remaining_amount, remaining_amount=remaining_amount-1+(SELECT sleep(N))
-WHERE EXISTS(
-  SELECT * FROM (
-    SELECT * FROM products WHERE id=1 AND remaining_amount>0
-  ) tmp
-);
-SELECT sleep(0);
-
-id	remaining_amount	referencing_amount_A	referencing_amount_B
-1	1	NULL	NULL
-B: sleep(0)
-B: 0
-A: sleep(2)
-A: 0
-id	remaining_amount	referencing_amount_A	referencing_amount_B
-1	-1	0	1
-
-CMD:my ISOLATION:REPEATABLE READ
-
-[SQL]
--- SUBQUERY WHERE, DELAY ON POST-WRITE --
-UPDATE products
-SET referencing_amount_%%USER%%=+remaining_amount, remaining_amount=remaining_amount-1+(SELECT sleep(N))
-WHERE EXISTS(
-  SELECT * FROM (
-    SELECT * FROM products WHERE id=1 AND remaining_amount>0
-  ) tmp
-);
-SELECT sleep(0);
-
-id	remaining_amount	referencing_amount_A	referencing_amount_B
-1	1	NULL	NULL
-A: sleep(2)
-A: 0
-B: sleep(0)
-B: 0
-id	remaining_amount	referencing_amount_A	referencing_amount_B
-1	0	1	NULL
-
-CMD:my ISOLATION:SERIALIZABLE
-
-[SQL]
--- SUBQUERY WHERE, DELAY ON POST-WRITE --
-UPDATE products
-SET referencing_amount_%%USER%%=+remaining_amount, remaining_amount=remaining_amount-1+(SELECT sleep(N))
-WHERE EXISTS(
-  SELECT * FROM (
-    SELECT * FROM products WHERE id=1 AND remaining_amount>0
-  ) tmp
-);
-SELECT sleep(0);
-
-id	remaining_amount	referencing_amount_A	referencing_amount_B
-1	1	NULL	NULL
-B: ERROR 1213 (40001) at line 3: Deadlock found when trying to get lock; try restarting transaction
-A: sleep(2)
-A: 0
 id	remaining_amount	referencing_amount_A	referencing_amount_B
 1	0	1	NULL
 
@@ -1654,13 +3308,63 @@ CMD:my ISOLATION:READ UNCOMMITTED
 
 [SQL]
 -- SUBQUERY SET, DELAY BEFORE READ --
-SELECT sleep(N);
+SELECT sleep(1|2);
 UPDATE products
 SET
   referencing_amount_%%USER%%=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
   remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1
 WHERE id=1 AND remaining_amount>0;
-SELECT sleep(0);
+SELECT sleep(2|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+A: sleep(1)
+A: 0
+A: sleep(2)
+A: 0
+B: sleep(2)
+B: 0
+B: sleep(0)
+B: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	0	1	NULL
+
+CMD:my ISOLATION:READ UNCOMMITTED
+
+[SQL]
+-- SUBQUERY SET, DELAY BEFORE READ --
+SELECT sleep(1|2);
+UPDATE products
+SET
+  referencing_amount_%%USER%%=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
+  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1
+WHERE id=1 AND remaining_amount>0;
+SELECT sleep(0|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+A: sleep(1)
+A: 0
+A: sleep(0)
+A: 0
+B: sleep(2)
+B: 0
+B: sleep(0)
+B: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	0	1	NULL
+
+CMD:my ISOLATION:READ COMMITTED
+
+[SQL]
+-- SUBQUERY SET, DELAY BEFORE READ --
+SELECT sleep(1|2);
+UPDATE products
+SET
+  referencing_amount_%%USER%%=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
+  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1
+WHERE id=1 AND remaining_amount>0;
+SELECT sleep(2|0);
 
 id	remaining_amount	referencing_amount_A	referencing_amount_B
 1	1	NULL	NULL
@@ -1679,13 +3383,38 @@ CMD:my ISOLATION:READ COMMITTED
 
 [SQL]
 -- SUBQUERY SET, DELAY BEFORE READ --
-SELECT sleep(N);
+SELECT sleep(1|2);
 UPDATE products
 SET
   referencing_amount_%%USER%%=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
   remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1
 WHERE id=1 AND remaining_amount>0;
-SELECT sleep(0);
+SELECT sleep(0|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+A: sleep(1)
+A: 0
+A: sleep(0)
+A: 0
+B: sleep(2)
+B: 0
+B: sleep(0)
+B: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	0	1	NULL
+
+CMD:my ISOLATION:REPEATABLE READ
+
+[SQL]
+-- SUBQUERY SET, DELAY BEFORE READ --
+SELECT sleep(1|2);
+UPDATE products
+SET
+  referencing_amount_%%USER%%=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
+  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1
+WHERE id=1 AND remaining_amount>0;
+SELECT sleep(2|0);
 
 id	remaining_amount	referencing_amount_A	referencing_amount_B
 1	1	NULL	NULL
@@ -1704,13 +3433,38 @@ CMD:my ISOLATION:REPEATABLE READ
 
 [SQL]
 -- SUBQUERY SET, DELAY BEFORE READ --
-SELECT sleep(N);
+SELECT sleep(1|2);
 UPDATE products
 SET
   referencing_amount_%%USER%%=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
   remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1
 WHERE id=1 AND remaining_amount>0;
-SELECT sleep(0);
+SELECT sleep(0|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+A: sleep(1)
+A: 0
+A: sleep(0)
+A: 0
+B: sleep(2)
+B: 0
+B: sleep(0)
+B: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	0	1	NULL
+
+CMD:my ISOLATION:SERIALIZABLE
+
+[SQL]
+-- SUBQUERY SET, DELAY BEFORE READ --
+SELECT sleep(1|2);
+UPDATE products
+SET
+  referencing_amount_%%USER%%=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
+  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1
+WHERE id=1 AND remaining_amount>0;
+SELECT sleep(2|0);
 
 id	remaining_amount	referencing_amount_A	referencing_amount_B
 1	1	NULL	NULL
@@ -1729,19 +3483,19 @@ CMD:my ISOLATION:SERIALIZABLE
 
 [SQL]
 -- SUBQUERY SET, DELAY BEFORE READ --
-SELECT sleep(N);
+SELECT sleep(1|2);
 UPDATE products
 SET
   referencing_amount_%%USER%%=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
   remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1
 WHERE id=1 AND remaining_amount>0;
-SELECT sleep(0);
+SELECT sleep(0|0);
 
 id	remaining_amount	referencing_amount_A	referencing_amount_B
 1	1	NULL	NULL
 A: sleep(1)
 A: 0
-A: sleep(2)
+A: sleep(0)
 A: 0
 B: sleep(2)
 B: 0
@@ -1756,70 +3510,10 @@ CMD:my ISOLATION:READ UNCOMMITTED
 -- SUBQUERY SET DELAY ON PRE-WRITE --
 UPDATE products
 SET
-  referencing_amount_%%USER%%=(SELECT sleep(N))+(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
+  referencing_amount_%%USER%%=(SELECT sleep(1|2))+(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
   remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1
 WHERE id=1 AND remaining_amount>0;
-SELECT sleep(0);
-
-id	remaining_amount	referencing_amount_A	referencing_amount_B
-1	1	NULL	NULL
-B: sleep(0)
-B: 0
-A: sleep(2)
-A: 0
-id	remaining_amount	referencing_amount_A	referencing_amount_B
-1	0	NULL	1
-
-CMD:my ISOLATION:READ COMMITTED
-
-[SQL]
--- SUBQUERY SET DELAY ON PRE-WRITE --
-UPDATE products
-SET
-  referencing_amount_%%USER%%=(SELECT sleep(N))+(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
-  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1
-WHERE id=1 AND remaining_amount>0;
-SELECT sleep(0);
-
-id	remaining_amount	referencing_amount_A	referencing_amount_B
-1	1	NULL	NULL
-B: sleep(0)
-B: 0
-A: sleep(2)
-A: 0
-id	remaining_amount	referencing_amount_A	referencing_amount_B
-1	0	NULL	1
-
-CMD:my ISOLATION:REPEATABLE READ
-
-[SQL]
--- SUBQUERY SET DELAY ON PRE-WRITE --
-UPDATE products
-SET
-  referencing_amount_%%USER%%=(SELECT sleep(N))+(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
-  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1
-WHERE id=1 AND remaining_amount>0;
-SELECT sleep(0);
-
-id	remaining_amount	referencing_amount_A	referencing_amount_B
-1	1	NULL	NULL
-A: sleep(2)
-A: 0
-B: sleep(0)
-B: 0
-id	remaining_amount	referencing_amount_A	referencing_amount_B
-1	0	1	NULL
-
-CMD:my ISOLATION:SERIALIZABLE
-
-[SQL]
--- SUBQUERY SET DELAY ON PRE-WRITE --
-UPDATE products
-SET
-  referencing_amount_%%USER%%=(SELECT sleep(N))+(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
-  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1
-WHERE id=1 AND remaining_amount>0;
-SELECT sleep(0);
+SELECT sleep(2|0);
 
 id	remaining_amount	referencing_amount_A	referencing_amount_B
 1	1	NULL	NULL
@@ -1833,13 +3527,193 @@ id	remaining_amount	referencing_amount_A	referencing_amount_B
 CMD:my ISOLATION:READ UNCOMMITTED
 
 [SQL]
+-- SUBQUERY SET DELAY ON PRE-WRITE --
+UPDATE products
+SET
+  referencing_amount_%%USER%%=(SELECT sleep(1|2))+(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
+  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1
+WHERE id=1 AND remaining_amount>0;
+SELECT sleep(0|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+A: sleep(0)
+A: 0
+B: sleep(0)
+B: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	0	1	NULL
+
+CMD:my ISOLATION:READ COMMITTED
+
+[SQL]
+-- SUBQUERY SET DELAY ON PRE-WRITE --
+UPDATE products
+SET
+  referencing_amount_%%USER%%=(SELECT sleep(1|2))+(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
+  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1
+WHERE id=1 AND remaining_amount>0;
+SELECT sleep(2|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+A: sleep(2)
+A: 0
+B: sleep(0)
+B: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	0	1	NULL
+
+CMD:my ISOLATION:READ COMMITTED
+
+[SQL]
+-- SUBQUERY SET DELAY ON PRE-WRITE --
+UPDATE products
+SET
+  referencing_amount_%%USER%%=(SELECT sleep(1|2))+(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
+  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1
+WHERE id=1 AND remaining_amount>0;
+SELECT sleep(0|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+B: sleep(0)
+B: 0
+A: sleep(0)
+A: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	0	1	NULL
+
+CMD:my ISOLATION:REPEATABLE READ
+
+[SQL]
+-- SUBQUERY SET DELAY ON PRE-WRITE --
+UPDATE products
+SET
+  referencing_amount_%%USER%%=(SELECT sleep(1|2))+(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
+  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1
+WHERE id=1 AND remaining_amount>0;
+SELECT sleep(2|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+B: sleep(0)
+B: 0
+A: sleep(2)
+A: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	0	NULL	1
+
+CMD:my ISOLATION:REPEATABLE READ
+
+[SQL]
+-- SUBQUERY SET DELAY ON PRE-WRITE --
+UPDATE products
+SET
+  referencing_amount_%%USER%%=(SELECT sleep(1|2))+(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
+  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1
+WHERE id=1 AND remaining_amount>0;
+SELECT sleep(0|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+A: sleep(0)
+A: 0
+B: sleep(0)
+B: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	0	1	NULL
+
+CMD:my ISOLATION:SERIALIZABLE
+
+[SQL]
+-- SUBQUERY SET DELAY ON PRE-WRITE --
+UPDATE products
+SET
+  referencing_amount_%%USER%%=(SELECT sleep(1|2))+(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
+  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1
+WHERE id=1 AND remaining_amount>0;
+SELECT sleep(2|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+B: sleep(0)
+B: 0
+A: sleep(2)
+A: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	0	NULL	1
+
+CMD:my ISOLATION:SERIALIZABLE
+
+[SQL]
+-- SUBQUERY SET DELAY ON PRE-WRITE --
+UPDATE products
+SET
+  referencing_amount_%%USER%%=(SELECT sleep(1|2))+(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
+  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1
+WHERE id=1 AND remaining_amount>0;
+SELECT sleep(0|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+B: sleep(0)
+B: 0
+A: sleep(0)
+A: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	0	NULL	1
+
+CMD:my ISOLATION:READ UNCOMMITTED
+
+[SQL]
 -- SUBQUERY SET DELAY ON POST-WRITE --
 UPDATE products
 SET
   referencing_amount_%%USER%%=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
-  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1+(SELECT sleep(N))
+  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1+(SELECT sleep(1|2))
 WHERE id=1 AND remaining_amount>0;
-SELECT sleep(0);
+SELECT sleep(2|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+B: sleep(0)
+B: 0
+A: sleep(2)
+A: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	0	NULL	1
+
+CMD:my ISOLATION:READ UNCOMMITTED
+
+[SQL]
+-- SUBQUERY SET DELAY ON POST-WRITE --
+UPDATE products
+SET
+  referencing_amount_%%USER%%=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
+  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1+(SELECT sleep(1|2))
+WHERE id=1 AND remaining_amount>0;
+SELECT sleep(0|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+B: sleep(0)
+B: 0
+A: sleep(0)
+A: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	0	NULL	1
+
+CMD:my ISOLATION:READ COMMITTED
+
+[SQL]
+-- SUBQUERY SET DELAY ON POST-WRITE --
+UPDATE products
+SET
+  referencing_amount_%%USER%%=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
+  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1+(SELECT sleep(1|2))
+WHERE id=1 AND remaining_amount>0;
+SELECT sleep(2|0);
 
 id	remaining_amount	referencing_amount_A	referencing_amount_B
 1	1	NULL	NULL
@@ -1857,9 +3731,29 @@ CMD:my ISOLATION:READ COMMITTED
 UPDATE products
 SET
   referencing_amount_%%USER%%=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
-  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1+(SELECT sleep(N))
+  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1+(SELECT sleep(1|2))
 WHERE id=1 AND remaining_amount>0;
-SELECT sleep(0);
+SELECT sleep(0|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+A: sleep(0)
+A: 0
+B: sleep(0)
+B: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	0	1	NULL
+
+CMD:my ISOLATION:REPEATABLE READ
+
+[SQL]
+-- SUBQUERY SET DELAY ON POST-WRITE --
+UPDATE products
+SET
+  referencing_amount_%%USER%%=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
+  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1+(SELECT sleep(1|2))
+WHERE id=1 AND remaining_amount>0;
+SELECT sleep(2|0);
 
 id	remaining_amount	referencing_amount_A	referencing_amount_B
 1	1	NULL	NULL
@@ -1877,9 +3771,29 @@ CMD:my ISOLATION:REPEATABLE READ
 UPDATE products
 SET
   referencing_amount_%%USER%%=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
-  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1+(SELECT sleep(N))
+  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1+(SELECT sleep(1|2))
 WHERE id=1 AND remaining_amount>0;
-SELECT sleep(0);
+SELECT sleep(0|0);
+
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	1	NULL	NULL
+B: sleep(0)
+B: 0
+A: sleep(0)
+A: 0
+id	remaining_amount	referencing_amount_A	referencing_amount_B
+1	0	NULL	1
+
+CMD:my ISOLATION:SERIALIZABLE
+
+[SQL]
+-- SUBQUERY SET DELAY ON POST-WRITE --
+UPDATE products
+SET
+  referencing_amount_%%USER%%=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
+  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1+(SELECT sleep(1|2))
+WHERE id=1 AND remaining_amount>0;
+SELECT sleep(2|0);
 
 id	remaining_amount	referencing_amount_A	referencing_amount_B
 1	1	NULL	NULL
@@ -1897,16 +3811,16 @@ CMD:my ISOLATION:SERIALIZABLE
 UPDATE products
 SET
   referencing_amount_%%USER%%=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp1),
-  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1+(SELECT sleep(N))
+  remaining_amount=(SELECT remaining_amount FROM (SELECT * FROM products WHERE id=1) tmp2)-1+(SELECT sleep(1|2))
 WHERE id=1 AND remaining_amount>0;
-SELECT sleep(0);
+SELECT sleep(0|0);
 
 id	remaining_amount	referencing_amount_A	referencing_amount_B
 1	1	NULL	NULL
+A: sleep(0)
+A: 0
 B: sleep(0)
 B: 0
-A: sleep(2)
-A: 0
 id	remaining_amount	referencing_amount_A	referencing_amount_B
-1	0	NULL	1
+1	0	1	NULL
 
